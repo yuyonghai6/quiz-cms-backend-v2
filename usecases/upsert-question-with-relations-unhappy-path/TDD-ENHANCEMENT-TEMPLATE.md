@@ -13,7 +13,7 @@ This template provides a systematic approach to enhance the remaining 10 user st
 
 ### Epic and Story Annotations for Tests
 - **@Epic**: `"[Epic Name]"`
-- **@Story**: `"0XX.story-identifier"`
+- **@Story**: `"story-0XX.story-identifier"`
 
 ### Red-Green-Refactor Cycle
 
@@ -42,7 +42,7 @@ class [ClassName]Test {
     @Test
     @Order(1)
     @Epic("[Epic Name]")
-    @Story("0XX.story-identifier")
+    @Story("story-0XX.story-identifier")
     @DisplayName("[Test Description]")
     @Description("[Detailed test description]")
     void [testMethodName]() {
@@ -119,35 +119,35 @@ mvn verify -pl internal-layer/question-bank
 
 #### US-022: Path Parameter Manipulation Detection
 - **@Epic**: `"Security Breach Protection"`
-- **@Story**: `"022.path-parameter-manipulation-detection"`
+- **@Story**: `"story-022.path-parameter-manipulation-detection"`
 - **Domain**: `security`
 - **Main Class**: `PathParameterManipulationDetector`
 - **Focus**: JWT token vs path parameter validation
 
 #### US-023: Token Privilege Escalation Prevention
 - **@Epic**: `"Security Breach Protection"`
-- **@Story**: `"023.token-privilege-escalation-prevention"`
+- **@Story**: `"story-023.token-privilege-escalation-prevention"`
 - **Domain**: `security`
 - **Main Class**: `TokenPrivilegeEscalationPrevention`
 - **Focus**: Enhanced ownership validation and cross-reference checks
 
 #### US-024: Session Hijacking Detection System
 - **@Epic**: `"Security Breach Protection"`
-- **@Story**: `"024.session-hijacking-detection-system"`
+- **@Story**: `"story-024.session-hijacking-detection-system"`
 - **Domain**: `security`
 - **Main Class**: `SessionHijackingDetector`
 - **Focus**: Behavioral analysis and session security validation
 
 #### US-025: Security Monitoring Integration
 - **@Epic**: `"Security Breach Protection"`
-- **@Story**: `"025.security-monitoring-integration"`
+- **@Story**: `"story-025.security-monitoring-integration"`
 - **Domain**: `security`
 - **Main Class**: `SecurityEventPublisher`
 - **Focus**: Real-time security event publishing and automated response
 
 #### US-027: Security Framework Maintenance and Evolution
 - **@Epic**: `"Security Breach Protection"`
-- **@Story**: `"027.security-framework-maintenance-and-evolution"`
+- **@Story**: `"story-027.security-framework-maintenance-and-evolution"`
 - **Domain**: `security`
 - **Main Class**: `SecurityFrameworkManager`
 - **Focus**: Long-term security framework management and updates
@@ -156,35 +156,35 @@ mvn verify -pl internal-layer/question-bank
 
 #### US-029: Contextual Error Message System
 - **@Epic**: `"Enhanced Error Messaging"`
-- **@Story**: `"029.contextual-error-message-system"`
+- **@Story**: `"story-029.contextual-error-message-system"`
 - **Domain**: `validation/error`
 - **Main Class**: `ContextualErrorMessageBuilder`
 - **Focus**: Rich contextual information and user guidance
 
 #### US-031: Error Tracking and Analytics System
 - **@Epic**: `"Enhanced Error Messaging"`
-- **@Story**: `"031.error-tracking-and-analytics-system"`
+- **@Story**: `"story-031.error-tracking-and-analytics-system"`
 - **Domain**: `validation/analytics`
 - **Main Class**: `ErrorTrackingAnalyticsService`
 - **Focus**: Comprehensive error analytics for continuous improvement
 
 #### US-032: Multilingual Error Message Support
 - **@Epic**: `"Enhanced Error Messaging"`
-- **@Story**: `"032.multilingual-error-message-support"`
+- **@Story**: `"story-032.multilingual-error-message-support"`
 - **Domain**: `validation/i18n`
 - **Main Class**: `MultilingualErrorMessageService`
 - **Focus**: Complete internationalization with cultural adaptation
 
 #### US-033: Accessibility-Enhanced Error Communication
 - **@Epic**: `"Enhanced Error Messaging"`
-- **@Story**: `"033.accessibility-enhanced-error-communication"`
+- **@Story**: `"story-033.accessibility-enhanced-error-communication"`
 - **Domain**: `validation/accessibility`
 - **Main Class**: `AccessibilityErrorCommunicationService`
 - **Focus**: WCAG compliance and assistive technology support
 
 #### US-035: Error Message Maintenance and Evolution
 - **@Epic**: `"Enhanced Error Messaging"`
-- **@Story**: `"035.error-message-maintenance-and-evolution"`
+- **@Story**: `"story-035.error-message-maintenance-and-evolution"`
 - **Domain**: `validation/maintenance`
 - **Main Class**: `ErrorMessageMaintenanceService`
 - **Focus**: Long-term error messaging system management
