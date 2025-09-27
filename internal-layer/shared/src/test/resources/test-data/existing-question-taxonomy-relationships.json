@@ -1,0 +1,30 @@
+[
+  {
+    "_id": "rel_001",
+    "questionId": "q_001",
+    "taxonomyId": "taxonomy_001",
+    "categoryValue": "Easy",
+    "createdAt": "2024-01-01T10:00:00Z"
+  },
+  {
+    "_id": "rel_002",
+    "questionId": "q_001",
+    "taxonomyId": "taxonomy_002",
+    "categoryValue": "Algebra",
+    "createdAt": "2024-01-01T10:00:00Z"
+  },
+  {
+    "_id": "rel_003",
+    "questionId": "q_002",
+    "taxonomyId": "taxonomy_001",
+    "categoryValue": "Medium",
+    "createdAt": "2024-01-01T10:00:00Z"
+  },
+  {
+    "_id": "rel_004",
+    "questionId": "q_003",
+    "taxonomyId": "taxonomy_001",
+    "categoryValue": "Easy",
+    "createdAt": "2024-01-02T10:00:00Z"
+  }
+]

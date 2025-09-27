@@ -1,0 +1,182 @@
+{
+  "source_question_id": "f47ac10b-58cc-4372-a567-0e02b2c3d479",
+  "question_type": "mcq",
+  "title": "JavaScript Array Methods",
+  "content": "<p>Which method adds elements to the <strong>end</strong> of an array?</p>",
+  
+  "taxonomy": {
+    "categories": {
+      "level_1": {
+        "id": "tech",
+        "name": "Technology",
+        "slug": "technology",
+        "parent_id": null
+      },
+      "level_2": {
+        "id": "prog",
+        "name": "Programming",
+        "slug": "programming",
+        "parent_id": "tech"
+      },
+      "level_3": {
+        "id": "web_dev",
+        "name": "Web Development",
+        "slug": "web-development",
+        "parent_id": "prog"
+      },
+      "level_4": {
+        "id": "javascript",
+        "name": "JavaScript",
+        "slug": "javascript",
+        "parent_id": "web_dev"
+      }
+    },
+    
+    "tags": [
+      {
+        "id": "js-arrays",
+        "name": "javascript",
+        "color": "#f7df1e"
+      },
+      {
+        "id": "array-methods",
+        "name": "arrays",
+        "color": "#61dafb"
+      },
+      {
+        "id": "methods",
+        "name": "methods",
+        "color": "#764abc"
+      },
+      {
+        "id": "beginner",
+        "name": "beginner-friendly",
+        "color": "#28a745"
+      }
+    ],
+    
+    "quizzes": [
+      {
+        "quiz_id": 101,
+        "quiz_name": "JavaScript Fundamentals Quiz",
+        "quiz_slug": "js-fundamentals"
+      },
+      {
+        "quiz_id": 205,
+        "quiz_name": "Array Methods Mastery",
+        "quiz_slug": "array-methods-mastery"
+      },
+      {
+        "quiz_id": 312,
+        "quiz_name": "Frontend Developer Assessment",
+        "quiz_slug": "frontend-dev-assessment"
+      }
+    ],
+    
+    "difficulty_level": {
+      "level": "easy",
+      "numeric_value": 1,
+      "description": "Suitable for beginners"
+    }
+  },
+  
+  "points": 5,
+  "solution_explanation": "<p>The <code>push()</code> method adds one or more elements to the end of an array and returns the new length of the array.</p>",
+  "status": "draft",
+  "display_order": 1,
+  "attachments": [
+    {
+      "id": "att_001",
+      "type": "image",
+      "filename": "array_methods_diagram.png",
+      "url": "/attachments/array_methods_diagram.png",
+      "size": 245760,
+      "mime_type": "image/png"
+    }
+  ],
+  
+  "mcq_data": {
+    "options": [
+      {
+        "id": 1,
+        "text": "push()",
+        "is_correct": true,
+        "explanation": "Correct! push() adds elements to the end of an array."
+      },
+      {
+        "id": 2,
+        "text": "pop()",
+        "is_correct": false,
+        "explanation": "Incorrect. pop() removes the last element from an array."
+      },
+      {
+        "id": 3,
+        "text": "shift()",
+        "is_correct": false,
+        "explanation": "Incorrect. shift() removes the first element from an array."
+      },
+      {
+        "id": 4,
+        "text": "unshift()",
+        "is_correct": false,
+        "explanation": "Incorrect. unshift() adds elements to the beginning of an array."
+      }
+    ],
+    "shuffle_options": false,
+    "allow_multiple_correct": false,
+    "allow_partial_credit": false,
+    "time_limit_seconds": 60
+  },
+  
+  "true_false_data": {
+    "statement": "The push() method modifies the original array and returns the new length.",
+    "correct_answer": true,
+    "explanation": "Correct! The push() method adds elements to the original array and returns its new length."
+  },
+  "essay_data": {
+    "prompt": "Explain the differences between push(), pop(), shift(), and unshift() methods in JavaScript arrays. Provide examples for each method.",
+    "min_words": 100,
+    "max_words": 500,
+    "rubric": [
+      {
+        "criteria": "Understanding of push() method",
+        "max_points": 25,
+        "description": "Correctly explains push() adds elements to end of array"
+      },
+      {
+        "criteria": "Understanding of pop() method", 
+        "max_points": 25,
+        "description": "Correctly explains pop() removes last element"
+      },
+      {
+        "criteria": "Understanding of shift() and unshift() methods",
+        "max_points": 25,
+        "description": "Correctly explains shift() and unshift() work with beginning of array"
+      },
+      {
+        "criteria": "Code examples and clarity",
+        "max_points": 25,
+        "description": "Provides clear, working code examples for each method"
+      }
+    ],
+    "allow_file_upload": false
+  },
+  
+  "question_settings": {
+    "randomize_display": false,
+    "show_explanation_immediately": true,
+    "allow_review": true
+  },
+  
+  "metadata": {
+    "created_source": "manual",
+    "last_modified": "2025-09-13T10:30:00Z",
+    "version": 1,
+    "author_id": 3
+  },
+  
+  "created_at": "2025-09-13T10:30:00Z",
+  "updated_at": "2025-09-13T10:30:00Z",
+  "published_at": null,
+  "archived_at": null
+}

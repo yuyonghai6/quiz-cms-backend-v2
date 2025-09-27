@@ -1,0 +1,26 @@
+[
+  {
+    "_id": "user1_bank1",
+    "userId": "user123",
+    "bankId": "bank_001",
+    "bankName": "Mathematics Question Bank",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "user1_bank2",
+    "userId": "user123",
+    "bankId": "bank_002",
+    "bankName": "Science Question Bank",
+    "createdAt": "2024-01-02T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "user2_bank1",
+    "userId": "user456",
+    "bankId": "bank_003",
+    "bankName": "History Question Bank",
+    "createdAt": "2024-01-03T10:00:00Z",
+    "isActive": true
+  }
+]

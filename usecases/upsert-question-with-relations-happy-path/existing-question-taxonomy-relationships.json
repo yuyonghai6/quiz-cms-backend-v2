@@ -1,0 +1,74 @@
+[
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439020"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "category_level_1",
+    "taxonomy_id": "tech",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439021"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "category_level_2",
+    "taxonomy_id": "prog",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439022"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "category_level_3",
+    "taxonomy_id": "web_dev",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439023"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "category_level_4",
+    "taxonomy_id": "javascript",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439024"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "tag",
+    "taxonomy_id": "js-arrays",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439025"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "tag",
+    "taxonomy_id": "array-methods",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439026"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "quiz",
+    "taxonomy_id": "101",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  },
+  {
+    "_id": {"$oid": "507f1f77bcf86cd799439027"},
+    "user_id": 3,
+    "question_bank_id": 123,
+    "question_id": {"$oid": "507f1f77bcf86cd799439013"},
+    "taxonomy_type": "difficulty_level",
+    "taxonomy_id": "easy",
+    "created_at": {"$date": "2025-09-13T09:00:00Z"}
+  }
+]

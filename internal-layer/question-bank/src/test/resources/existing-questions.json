@@ -1,0 +1,34 @@
+[
+  {
+    "_id": "question_001",
+    "questionId": "q_001",
+    "bankId": "bank_001",
+    "content": "What is 2 + 2?",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": ["3", "4", "5", "6"],
+    "correctAnswer": "4",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "question_002",
+    "questionId": "q_002",
+    "bankId": "bank_001",
+    "content": "What is the square root of 16?",
+    "questionType": "MULTIPLE_CHOICE",
+    "options": ["2", "3", "4", "5"],
+    "correctAnswer": "4",
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "question_003",
+    "questionId": "q_003",
+    "bankId": "bank_002",
+    "content": "What is the chemical symbol for water?",
+    "questionType": "SHORT_ANSWER",
+    "correctAnswer": "H2O",
+    "createdAt": "2024-01-02T10:00:00Z",
+    "isActive": true
+  }
+]

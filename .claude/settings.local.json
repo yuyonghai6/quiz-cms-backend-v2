@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(netstat:*)",
+      "Bash(mvn clean:*)",
+      "Bash(./orchestration-layer/mvnw:*)",
+      "Bash(chmod:*)",
+      "Bash(./mvnw:*)",
+      "Bash(orchestration-layer/mvnw clean:*)",
+      "Bash(curl:*)",
+      "Bash(xargs ls:*)",
+      "Bash(mvn test:*)",
+      "Bash(mvn verify:*)",
+      "Bash(mvn jacoco:check:*)",
+      "Bash(find:*)",
+      "Bash(awk:*)",
+      "Bash(mvn dependency:tree:*)",
+      "Bash(ss:*)",
+      "Bash(mvn -Dtest=com.quizfun.questionbank.domain.entities.QuestionTypeValueObjectsTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn -Dtest=com.quizfun.questionbank.config.TestContainersMongoDBConfigurationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn -Dtest=com.quizfun.questionbank.domain.entities.QuestionTypeValueObjectsTest test -pl internal-layer/question-bank)",
+      "Bash(mvn -Dtest=com.quizfun.questionbank.application.services.QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(docker ps:*)",
+      "Bash(mvn compile:*)",
+      "Bash(grep:*)"
+    ]
+  },
+  "outputStyle": "Learning"
+}

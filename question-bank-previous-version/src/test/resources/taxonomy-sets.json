@@ -1,0 +1,23 @@
+[
+  {
+    "_id": "taxonomy_001",
+    "name": "Difficulty Level",
+    "categories": ["Easy", "Medium", "Hard", "Expert"],
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "taxonomy_002",
+    "name": "Subject Area",
+    "categories": ["Algebra", "Geometry", "Calculus", "Statistics"],
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  },
+  {
+    "_id": "taxonomy_003",
+    "name": "Grade Level",
+    "categories": ["Elementary", "Middle School", "High School", "College"],
+    "createdAt": "2024-01-01T10:00:00Z",
+    "isActive": true
+  }
+]
