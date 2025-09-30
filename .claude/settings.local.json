@@ -23,7 +23,8 @@
       "Bash(mvn -Dtest=com.quizfun.questionbank.application.services.QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
       "Bash(docker ps:*)",
       "Bash(mvn compile:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(mvn -Dtest=QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)"
     ]
   },
   "outputStyle": "Learning"

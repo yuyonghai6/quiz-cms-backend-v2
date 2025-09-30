@@ -1,0 +1,89 @@
+{
+  "source_question_id": "attack-question-malicious-123",
+  "question_type": "mcq",
+  "title": "Path Parameter Manipulation Attack Attempt",
+  "content": "<p>This is a malicious attempt to access another user's question bank</p>",
+
+  "taxonomy": {
+    "categories": {
+      "level_1": {
+        "id": "tech",
+        "name": "Technology",
+        "slug": "technology",
+        "parent_id": null
+      },
+      "level_2": {
+        "id": "security",
+        "name": "Security",
+        "slug": "security",
+        "parent_id": "tech"
+      }
+    },
+
+    "tags": [
+      {
+        "id": "attack-attempt",
+        "name": "attack-attempt",
+        "color": "#ff0000"
+      }
+    ],
+
+    "quizzes": [
+      {
+        "quiz_id": 999,
+        "quiz_name": "Unauthorized Access Attempt",
+        "quiz_slug": "unauthorized-access"
+      }
+    ],
+
+    "difficulty_level": {
+      "level": "malicious",
+      "numeric_value": 10,
+      "description": "Security breach attempt"
+    }
+  },
+
+  "points": 0,
+  "solution_explanation": "<p>This should be blocked by security validation</p>",
+  "status": "malicious",
+  "display_order": 999,
+
+  "mcq_data": {
+    "options": [
+      {
+        "id": 1,
+        "text": "Should be blocked",
+        "is_correct": true,
+        "explanation": "Security validation should prevent this"
+      },
+      {
+        "id": 2,
+        "text": "Should not reach here",
+        "is_correct": false,
+        "explanation": "This request should be denied at security layer"
+      }
+    ],
+    "shuffle_options": false,
+    "allow_multiple_correct": false,
+    "allow_partial_credit": false,
+    "time_limit_seconds": 0
+  },
+
+  "question_settings": {
+    "randomize_display": false,
+    "show_explanation_immediately": false,
+    "allow_review": false
+  },
+
+  "metadata": {
+    "created_source": "malicious_attempt",
+    "last_modified": "2025-09-27T10:30:00Z",
+    "version": 1,
+    "author_id": 1002
+  },
+
+  "created_at": "2025-09-27T10:30:00Z",
+  "updated_at": "2025-09-27T10:30:00Z",
+  "published_at": null,
+  "archived_at": null
+}

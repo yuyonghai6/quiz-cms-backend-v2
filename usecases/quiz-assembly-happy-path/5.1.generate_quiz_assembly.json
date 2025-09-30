@@ -1,0 +1,81 @@
+{
+  "quiz_assembly_id": "018f-b2c3-d4e5-f6a7-234567890def",
+
+  "quiz_metadata": {
+    "title": "JavaScript Fundamentals Assessment",
+    "description": "Comprehensive evaluation covering variables, functions, arrays, and objects in JavaScript. This assessment tests understanding of core JavaScript concepts essential for web development.",
+    "estimated_duration_minutes": 75
+  },
+
+  "selected_question_ids": [
+    "018f-c3d4-e5f6-a7b8-345678901234",
+    "018f-d4e5-f6a7-b8c9-456789012345",
+    "018f-e5f6-a7b8-c9d0-567890123456",
+    "018f-f6a7-b8c9-d0e1-678901234567",
+    "018f-a7b8-c9d0-e1f2-789012345678",
+    "018f-b8c9-d0e1-f2a3-890123456789",
+    "018f-c9d0-e1f2-a3b4-901234567890",
+    "018f-d0e1-f2a3-b4c5-012345678901",
+    "018f-e1f2-a3b4-c5d6-123456789012",
+    "018f-f2a3-b4c5-d6e7-234567890123",
+    "018f-a3b4-c5d6-e7f8-345678901234",
+    "018f-b4c5-d6e7-f8a9-456789012345",
+    "018f-c5d6-e7f8-a9b0-567890123456",
+    "018f-d6e7-f8a9-b0c1-678901234567",
+    "018f-e7f8-a9b0-c1d2-789012345678"
+  ],
+
+  "assembly_settings": {
+    "randomize_question_order": false,
+    "allow_navigation": true,
+    "allow_review": true,
+    "time_limit_minutes": 75,
+    "auto_submit_on_timeout": true,
+    "show_progress_indicator": true,
+    "allow_question_skipping": true,
+    "require_all_questions_attempted": false
+  },
+
+  "question_display_orders": {
+    "018f-c3d4-e5f6-a7b8-345678901234": 1,
+    "018f-d4e5-f6a7-b8c9-456789012345": 2,
+    "018f-e5f6-a7b8-c9d0-567890123456": 3,
+    "018f-f6a7-b8c9-d0e1-678901234567": 4,
+    "018f-a7b8-c9d0-e1f2-789012345678": 5,
+    "018f-b8c9-d0e1-f2a3-890123456789": 6,
+    "018f-c9d0-e1f2-a3b4-901234567890": 7,
+    "018f-d0e1-f2a3-b4c5-012345678901": 8,
+    "018f-e1f2-a3b4-c5d6-123456789012": 9,
+    "018f-f2a3-b4c5-d6e7-234567890123": 10,
+    "018f-a3b4-c5d6-e7f8-345678901234": 11,
+    "018f-b4c5-d6e7-f8a9-456789012345": 12,
+    "018f-c5d6-e7f8-a9b0-567890123456": 13,
+    "018f-d6e7-f8a9-b0c1-678901234567": 14,
+    "018f-e7f8-a9b0-c1d2-789012345678": 15
+  },
+
+  "points_overrides": {
+    "018f-d4e5-f6a7-b8c9-456789012345": 8,
+    "018f-f6a7-b8c9-d0e1-678901234567": 7,
+    "018f-c9d0-e1f2-a3b4-901234567890": 6
+  },
+
+  "assembly_metadata": {
+    "assembly_source": "manual_selection",
+    "is_template": false,
+    "template_category": null,
+    "learning_objectives": [
+      "Understand JavaScript variable declaration and scoping",
+      "Master array methods and functional programming concepts",
+      "Comprehend object manipulation and property access",
+      "Apply control flow and conditional logic",
+      "Demonstrate function declaration and invocation patterns"
+    ],
+    "target_audience": "intermediate",
+    "difficulty_balance": {
+      "easy_percentage": 40,
+      "medium_percentage": 45,
+      "hard_percentage": 15
+    }
+  }
+}

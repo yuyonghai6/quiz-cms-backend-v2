@@ -5,9 +5,12 @@ import com.quizfun.questionbank.application.dto.TaxonomyData;
 import com.quizfun.questionbank.application.dto.UpsertQuestionRequestDto;
 import com.quizfun.questionbank.application.ports.out.QuestionBanksPerUserRepository;
 import com.quizfun.questionbank.application.ports.out.TaxonomySetRepository;
+import com.quizfun.questionbank.application.security.SecurityAuditLogger;
+import com.quizfun.questionbank.application.security.SecurityContextValidator;
 import com.quizfun.questionbank.application.validation.QuestionBankOwnershipValidator;
 import com.quizfun.questionbank.application.validation.QuestionDataIntegrityValidator;
 import com.quizfun.questionbank.application.validation.TaxonomyReferenceValidator;
+import com.quizfun.questionbank.infrastructure.monitoring.ValidationChainMetrics;
 import com.quizfun.questionbank.domain.entities.McqData;
 import com.quizfun.questionbank.domain.entities.McqOption;
 import com.quizfun.questionbank.infrastructure.configuration.ValidationChainConfig;
@@ -26,6 +29,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -46,22 +54,38 @@ class ValidationChainIntegrationTest {
     @Mock
     private RetryHelper retryHelper;
 
+    @Mock
+    private SecurityAuditLogger securityAuditLogger;
+
+    @Mock
+    private ValidationChainMetrics metrics;
+
     private ValidationHandler validationChain;
     private UpsertQuestionCommand validCommand;
 
     @BeforeEach
     void setUp() {
         // Create individual validators
+        var securityValidator = new SecurityContextValidator(null, securityAuditLogger, retryHelper, metrics);
         var ownershipValidator = new QuestionBankOwnershipValidator(questionBanksRepository, retryHelper);
         var taxonomyValidator = new TaxonomyReferenceValidator(taxonomyRepository);
         var dataValidator = new QuestionDataIntegrityValidator();
 
         // Configure the validation chain using the configuration class
         var config = new ValidationChainConfig();
-        validationChain = config.questionUpsertValidationChain(ownershipValidator, taxonomyValidator, dataValidator);
+        validationChain = config.questionUpsertValidationChain(securityValidator, ownershipValidator, taxonomyValidator, dataValidator);
 
         // Create a valid command for testing
         validCommand = new UpsertQuestionCommand(1001L, 2002L, createValidRequest());
+
+        // Setup valid JWT authentication context for security validation
+        var jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "HS256")
+                .claim("sub", "1001")  // Matches the user ID in validCommand
+                .claim("iat", Instant.now())
+                .claim("exp", Instant.now().plusSeconds(3600))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
 
         // Setup default successful behavior for retry helper
         when(retryHelper.executeWithRetry(any(), any())).thenAnswer(invocation -> {
@@ -295,6 +319,15 @@ class ValidationChainIntegrationTest {
                 final int requestId = i;
                 executor.submit(() -> {
                     try {
+                        // Set up security context for this thread (required for SecurityContextValidator)
+                        var jwt = Jwt.withTokenValue("test-token-" + requestId)
+                                .header("alg", "HS256")
+                                .claim("sub", "1001")  // Matches the user ID in command
+                                .claim("iat", Instant.now())
+                                .claim("exp", Instant.now().plusSeconds(3600))
+                                .build();
+                        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+
                         var request = UpsertQuestionRequestDto.builder()
                             .sourceQuestionId(String.format("018f6df6-8a9b-7c2e-b3d6-9a4f2c1e%04d", requestId))
                             .questionType("MCQ")
@@ -308,6 +341,8 @@ class ValidationChainIntegrationTest {
                         var result = validationChain.validate(command);
                         results.add(result.isSuccess());
                     } finally {
+                        // Clear security context for this thread
+                        SecurityContextHolder.clearContext();
                         latch.countDown();
                     }
                 });

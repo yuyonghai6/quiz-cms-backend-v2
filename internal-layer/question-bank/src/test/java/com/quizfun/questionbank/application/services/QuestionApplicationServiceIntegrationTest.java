@@ -12,12 +12,17 @@ import com.quizfun.shared.common.Result;
 import io.qameta.allure.*;
 import org.bson.Document;
 import org.bson.types.ObjectId;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +32,18 @@ public class QuestionApplicationServiceIntegrationTest extends BaseTestConfigura
 
     @Autowired
     private QuestionApplicationService questionApplicationService;
+
+    @BeforeEach
+    void setUpAuthentication() {
+        // Set up JWT authentication context for security validation
+        var jwt = Jwt.withTokenValue("integration-test-token")
+                .header("alg", "HS256")
+                .claim("sub", "12345")  // Matches the user ID in createValidUpsertCommand
+                .claim("iat", Instant.now())
+                .claim("exp", Instant.now().plusSeconds(3600))
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
 
     @Nested
     @DisplayName("Complete Business Workflow Integration Tests")

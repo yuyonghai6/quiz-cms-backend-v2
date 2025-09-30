@@ -1,8 +1,12 @@
 package com.quizfun.questionbank.infrastructure.configuration;
 
+import com.quizfun.questionbank.application.security.SecurityAuditLogger;
+import com.quizfun.questionbank.application.security.SecurityContextValidator;
 import com.quizfun.questionbank.application.validation.QuestionBankOwnershipValidator;
 import com.quizfun.questionbank.application.validation.TaxonomyReferenceValidator;
 import com.quizfun.questionbank.application.validation.QuestionDataIntegrityValidator;
+import com.quizfun.questionbank.infrastructure.monitoring.ValidationChainMetrics;
+import com.quizfun.questionbank.infrastructure.utils.RetryHelper;
 import com.quizfun.shared.validation.ValidationHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,39 +28,61 @@ public class ValidationChainConfig {
     private static final Logger logger = LoggerFactory.getLogger(ValidationChainConfig.class);
 
     /**
-     * Creates and configures the validation chain for question upsert operations.
-     * The chain is ordered by importance and performance characteristics.
+     * Creates SecurityContextValidator bean for injection into validation chain.
      *
+     * @param securityAuditLogger Security audit logger for violation logging
+     * @param retryHelper Retry helper from US-003 for resilient operations
+     * @param metrics Validation chain metrics for monitoring
+     * @return Configured SecurityContextValidator instance
+     */
+    @Bean
+    public SecurityContextValidator securityContextValidator(
+            SecurityAuditLogger securityAuditLogger,
+            RetryHelper retryHelper,
+            ValidationChainMetrics metrics) {
+        return new SecurityContextValidator(null, securityAuditLogger, retryHelper, metrics);
+    }
+
+    /**
+     * Creates and configures the validation chain for question upsert operations.
+     * The chain is ordered by security priority and performance characteristics.
+     *
+     * @param securityValidator Validates JWT token security context (highest priority)
      * @param ownershipValidator Validates question bank ownership and security
      * @param taxonomyValidator Validates taxonomy reference integrity
      * @param dataValidator Validates question data integrity and business rules
-     * @return Configured validation chain starting with ownership validation
+     * @return Configured validation chain starting with security validation
      */
     @Bean
     @Primary
     @Qualifier("questionUpsertValidationChain")
     public ValidationHandler questionUpsertValidationChain(
+            SecurityContextValidator securityValidator,
             QuestionBankOwnershipValidator ownershipValidator,
             TaxonomyReferenceValidator taxonomyValidator,
             QuestionDataIntegrityValidator dataValidator) {
 
         logger.info("Configuring question upsert validation chain");
 
-        // Chain order: Ownership -> Taxonomy -> Data Integrity
+        // Chain the validators in the correct security-first order
+        // Chain order: Security -> Ownership -> Taxonomy -> Data Integrity
         // This order ensures:
-        // 1. Security first (ownership)
-        // 2. Reference integrity second (taxonomy)
-        // 3. Data validation last (most detailed, potentially expensive)
-        ownershipValidator
+        // 1. JWT token security first (prevents path parameter manipulation attacks)
+        // 2. Question bank ownership second (business security)
+        // 3. Reference integrity third (taxonomy validation)
+        // 4. Data validation last (most detailed, potentially expensive)
+        securityValidator
+            .setNext(ownershipValidator)
             .setNext(taxonomyValidator)
             .setNext(dataValidator);
 
-        logger.info("Question upsert validation chain configured: {} -> {} -> {}",
+        logger.info("Question upsert validation chain configured: {} -> {} -> {} -> {}",
+                   securityValidator.getClass().getSimpleName(),
                    ownershipValidator.getClass().getSimpleName(),
                    taxonomyValidator.getClass().getSimpleName(),
                    dataValidator.getClass().getSimpleName());
 
-        return ownershipValidator;
+        return securityValidator;
     }
 
     /**

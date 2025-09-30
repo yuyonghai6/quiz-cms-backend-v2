@@ -1,0 +1,232 @@
+{
+  "success": true,
+  "data": {
+    "quiz_assembly_id": "018f-b2c3-d4e5-f6a7-234567890def",
+    "user_id": 12345,
+    "question_bank_id": "018f-a1b2-c3d4-e5f6-123456789abc",
+
+    "quiz_metadata": {
+      "title": "JavaScript Fundamentals Assessment",
+      "description": "Comprehensive evaluation covering variables, functions, arrays, and objects in JavaScript",
+      "total_points": 95,
+      "estimated_duration_minutes": 75,
+      "question_count": 15,
+      "difficulty_distribution": {
+        "easy": 6,
+        "medium": 7,
+        "hard": 2
+      }
+    },
+
+    "assembled_questions": [
+      {
+        "source_question_id": "018f-c3d4-e5f6-a7b8-345678901234",
+        "display_order": 1,
+        "points": 5,
+        "points_override": null,
+        "included_at": "2025-09-29T10:30:00Z",
+
+        "question_snapshot": {
+          "question_type": "mcq",
+          "title": "JavaScript Variable Declaration",
+          "content": "<p>Which keyword is used to declare a <strong>block-scoped</strong> variable in JavaScript?</p>",
+          "points": 5,
+          "status": "published",
+
+          "mcq_data": {
+            "options": [
+              {
+                "id": 1,
+                "text": "let",
+                "is_correct": true,
+                "explanation": "Correct! 'let' declares block-scoped variables introduced in ES6."
+              },
+              {
+                "id": 2,
+                "text": "var",
+                "is_correct": false,
+                "explanation": "Incorrect. 'var' is function-scoped, not block-scoped."
+              },
+              {
+                "id": 3,
+                "text": "const",
+                "is_correct": false,
+                "explanation": "Incorrect. 'const' declares constants, which cannot be reassigned."
+              },
+              {
+                "id": 4,
+                "text": "function",
+                "is_correct": false,
+                "explanation": "Incorrect. 'function' is used to declare functions, not variables."
+              }
+            ],
+            "shuffle_options": false,
+            "allow_multiple_correct": false,
+            "time_limit_seconds": 30
+          },
+
+          "taxonomy_snapshot": {
+            "categories": {
+              "level_1": { "id": "tech", "name": "Technology" },
+              "level_2": { "id": "prog", "name": "Programming" },
+              "level_3": { "id": "web_dev", "name": "Web Development" },
+              "level_4": { "id": "javascript", "name": "JavaScript" }
+            },
+            "tags": [
+              { "id": "variables", "name": "Variables", "color": "#f7df1e" },
+              { "id": "block-scope", "name": "Block Scope", "color": "#61dafb" },
+              { "id": "es6", "name": "ES6", "color": "#764abc" }
+            ],
+            "difficulty_level": {
+              "level": "easy",
+              "numeric_value": 1,
+              "description": "Suitable for beginners"
+            }
+          }
+        }
+      },
+      {
+        "source_question_id": "018f-d4e5-f6a7-b8c9-456789012345",
+        "display_order": 2,
+        "points": 8,
+        "points_override": 8,
+        "included_at": "2025-09-29T10:30:00Z",
+
+        "question_snapshot": {
+          "question_type": "essay",
+          "title": "JavaScript Array Methods Deep Dive",
+          "content": "<p>Compare and contrast the <code>map()</code>, <code>filter()</code>, and <code>reduce()</code> methods in JavaScript. For each method:</p><ol><li>Explain its primary purpose</li><li>Describe the return value</li><li>Provide a practical code example</li><li>Discuss when to use it over the others</li></ol>",
+          "points": 5,
+          "status": "published",
+
+          "essay_data": {
+            "prompt": "Compare and contrast the map(), filter(), and reduce() methods in JavaScript. For each method: explain its primary purpose, describe the return value, provide a practical code example, and discuss when to use it over the others.",
+            "min_words": 300,
+            "max_words": 1000,
+            "rubric": [
+              {
+                "criteria": "Understanding of map() method",
+                "max_points": 25,
+                "description": "Correctly explains that map() transforms each element and returns a new array of the same length"
+              },
+              {
+                "criteria": "Understanding of filter() method",
+                "max_points": 25,
+                "description": "Correctly explains that filter() selects elements based on a condition and returns a new array"
+              },
+              {
+                "criteria": "Understanding of reduce() method",
+                "max_points": 25,
+                "description": "Correctly explains that reduce() accumulates values into a single result"
+              },
+              {
+                "criteria": "Code examples and practical application",
+                "max_points": 25,
+                "description": "Provides clear, working code examples and explains appropriate use cases for each method"
+              }
+            ],
+            "allow_file_upload": true
+          },
+
+          "taxonomy_snapshot": {
+            "categories": {
+              "level_1": { "id": "tech", "name": "Technology" },
+              "level_2": { "id": "prog", "name": "Programming" },
+              "level_3": { "id": "web_dev", "name": "Web Development" },
+              "level_4": { "id": "javascript", "name": "JavaScript" }
+            },
+            "tags": [
+              { "id": "array-methods", "name": "Array Methods", "color": "#f7df1e" },
+              { "id": "functional-programming", "name": "Functional Programming", "color": "#764abc" },
+              { "id": "higher-order-functions", "name": "Higher Order Functions", "color": "#ff6b6b" }
+            ],
+            "difficulty_level": {
+              "level": "medium",
+              "numeric_value": 2,
+              "description": "Intermediate knowledge required"
+            }
+          }
+        }
+      },
+      {
+        "source_question_id": "018f-e5f6-a7b8-c9d0-567890123456",
+        "display_order": 3,
+        "points": 3,
+        "points_override": null,
+        "included_at": "2025-09-29T10:30:00Z",
+
+        "question_snapshot": {
+          "question_type": "true_false",
+          "title": "JavaScript Hoisting Behavior",
+          "content": "<p>True or False: In JavaScript, both <code>var</code> declarations and function declarations are hoisted to the top of their containing scope.</p>",
+          "points": 3,
+          "status": "published",
+
+          "true_false_data": {
+            "statement": "In JavaScript, both var declarations and function declarations are hoisted to the top of their containing scope.",
+            "correct_answer": true,
+            "explanation": "True! Both var declarations and function declarations are hoisted in JavaScript. However, while function declarations are fully hoisted (including their implementation), var declarations are only hoisted with undefined initialization."
+          },
+
+          "taxonomy_snapshot": {
+            "categories": {
+              "level_1": { "id": "tech", "name": "Technology" },
+              "level_2": { "id": "prog", "name": "Programming" },
+              "level_3": { "id": "web_dev", "name": "Web Development" },
+              "level_4": { "id": "javascript", "name": "JavaScript" }
+            },
+            "tags": [
+              { "id": "hoisting", "name": "Hoisting", "color": "#f7df1e" },
+              { "id": "scope", "name": "Scope", "color": "#61dafb" },
+              { "id": "execution-context", "name": "Execution Context", "color": "#764abc" }
+            ],
+            "difficulty_level": {
+              "level": "medium",
+              "numeric_value": 2,
+              "description": "Intermediate knowledge required"
+            }
+          }
+        }
+      }
+    ],
+
+    "assembly_settings": {
+      "randomize_question_order": false,
+      "allow_navigation": true,
+      "allow_review": true,
+      "time_limit_minutes": 75,
+      "auto_submit_on_timeout": true,
+      "show_progress_indicator": true,
+      "allow_question_skipping": true,
+      "require_all_questions_attempted": false
+    },
+
+    "metadata": {
+      "created_by": 12345,
+      "last_modified_by": 12345,
+      "version": 2,
+      "assembly_source": "manual_selection",
+      "original_question_count": 15,
+      "last_question_sync": "2025-09-29T10:30:00Z",
+      "is_template": false,
+      "template_category": null
+    },
+
+    "statistics": {
+      "average_time_per_question": 5.0,
+      "complexity_score": 2.3,
+      "topic_coverage": [
+        { "topic": "variables", "question_count": 4 },
+        { "topic": "functions", "question_count": 3 },
+        { "topic": "arrays", "question_count": 4 },
+        { "topic": "objects", "question_count": 2 },
+        { "topic": "scope", "question_count": 2 }
+      ]
+    },
+
+    "created_at": "2025-09-29T10:30:00Z",
+    "updated_at": "2025-09-29T11:45:00Z",
+    "archived_at": null
+  },
+  "error": null
+}

@@ -42,7 +42,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration.class,
     org.springframework.boot.autoconfigure.web.embedded.EmbeddedWebServerFactoryCustomizerAutoConfiguration.class,
     org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration.class,
-    org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration.class
+    org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration.class,
+    org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration.class,
+    org.springframework.boot.autoconfigure.security.oauth2.resource.servlet.OAuth2ResourceServerAutoConfiguration.class
 })
 @EnableTransactionManagement
 @ComponentScan(
