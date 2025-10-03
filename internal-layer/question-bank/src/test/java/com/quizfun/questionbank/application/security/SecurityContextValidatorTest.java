@@ -203,11 +203,16 @@ class SecurityContextValidatorTest {
         assertThat(result.isFailure()).isTrue();
         assertThat(result.getErrorCode()).isEqualTo(ValidationErrorCode.UNAUTHORIZED_ACCESS.name());
 
-        // Verify that security violation was logged with expected parameters
-        verify(auditLogger).logSecurityViolation(
-            eq("PATH_PARAMETER_MANIPULATION"),
-            eq(1002L),
-            contains("Token user 1002 attempted access to user 1001")
+        // US-022: Verify that security event was logged using new SecurityEvent model
+        verify(auditLogger).logSecurityEventAsync(
+            org.mockito.ArgumentMatchers.argThat(event ->
+                event.getType() == SecurityEventType.PATH_PARAMETER_MANIPULATION &&
+                event.getUserId().equals(1002L) &&
+                event.getSeverity() == SeverityLevel.CRITICAL &&
+                event.getDetails().containsKey("attackPattern") &&
+                event.getDetails().get("tokenUserId").equals(1002L) &&
+                event.getDetails().get("pathUserId").equals(1001L)
+            )
         );
     }
 

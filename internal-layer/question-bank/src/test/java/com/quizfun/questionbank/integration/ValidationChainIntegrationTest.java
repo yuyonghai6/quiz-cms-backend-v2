@@ -67,7 +67,7 @@ class ValidationChainIntegrationTest {
     void setUp() {
         // Create individual validators
         var securityValidator = new SecurityContextValidator(null, securityAuditLogger, retryHelper, metrics);
-        var ownershipValidator = new QuestionBankOwnershipValidator(questionBanksRepository, retryHelper);
+        var ownershipValidator = new QuestionBankOwnershipValidator(questionBanksRepository, retryHelper, securityAuditLogger);
         var taxonomyValidator = new TaxonomyReferenceValidator(taxonomyRepository);
         var dataValidator = new QuestionDataIntegrityValidator();
 

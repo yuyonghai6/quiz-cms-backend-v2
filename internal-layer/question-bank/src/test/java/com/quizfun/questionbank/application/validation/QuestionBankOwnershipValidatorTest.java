@@ -3,6 +3,7 @@ package com.quizfun.questionbank.application.validation;
 import com.quizfun.questionbank.application.commands.UpsertQuestionCommand;
 import com.quizfun.questionbank.application.dto.UpsertQuestionRequestDto;
 import com.quizfun.questionbank.application.ports.out.QuestionBanksPerUserRepository;
+import com.quizfun.questionbank.application.security.SecurityAuditLogger;
 import com.quizfun.questionbank.infrastructure.utils.RetryHelper;
 import com.quizfun.shared.common.Result;
 import io.qameta.allure.Description;
@@ -31,12 +32,15 @@ class QuestionBankOwnershipValidatorTest {
     @Mock
     private RetryHelper retryHelper;
 
+    @Mock
+    private SecurityAuditLogger securityAuditLogger;
+
     private QuestionBankOwnershipValidator validator;
     private UpsertQuestionCommand validCommand;
 
     @BeforeEach
     void setUp() {
-        validator = new QuestionBankOwnershipValidator(repository, retryHelper);
+        validator = new QuestionBankOwnershipValidator(repository, retryHelper, securityAuditLogger);
         validCommand = new UpsertQuestionCommand(
             1001L, 2002L, createValidRequest()
         );
@@ -120,6 +124,39 @@ class QuestionBankOwnershipValidatorTest {
         }
 
         @Test
+        @Epic("Security Breach Protection")
+        @Story("023.token-privilege-escalation-prevention")
+        @DisplayName("QuestionBankOwnershipValidatorTest.Should log privilege escalation when ownership validation fails")
+        @Description("US-023: Verifies that privilege escalation attempts are logged when user doesn't own question bank")
+        void shouldLogPrivilegeEscalationWhenOwnershipValidationFails() {
+            // Arrange
+            when(retryHelper.executeWithRetry(any(), eq("validateOwnership")))
+                .thenAnswer(invocation -> invocation.getArgument(0, java.util.function.Supplier.class).get());
+
+            when(repository.validateOwnership(1001L, 2002L))
+                .thenReturn(Result.success(false));
+
+            // Act
+            var result = validator.validate(validCommand);
+
+            // Assert - Validation should fail
+            assertThat(result.isFailure()).isTrue();
+            assertThat(result.getErrorCode()).isEqualTo("UNAUTHORIZED_ACCESS");
+
+            // US-023: Verify privilege escalation event was logged
+            verify(securityAuditLogger).logSecurityEventAsync(
+                org.mockito.ArgumentMatchers.argThat(event ->
+                    event.getType() == com.quizfun.questionbank.application.security.SecurityEventType.TOKEN_PRIVILEGE_ESCALATION &&
+                    event.getUserId().equals(1001L) &&
+                    event.getSeverity() == com.quizfun.questionbank.application.security.SeverityLevel.CRITICAL &&
+                    event.getDetails().containsKey("violationType") &&
+                    event.getDetails().get("violationType").equals("OWNERSHIP_VIOLATION") &&
+                    event.getDetails().get("questionBankId").equals(2002L)
+                )
+            );
+        }
+
+        @Test
         @Epic("Enabler Epic-Core Infrastructure")
         @Story("story-003.validation-chain-implementation")
         @DisplayName("QuestionBankOwnershipValidatorTest.Should fail validation when question bank is inactive")
@@ -145,6 +182,43 @@ class QuestionBankOwnershipValidatorTest {
             assertThat(result.getError()).contains("Question bank 2002 is not active for user 1001");
             verify(retryHelper).executeWithRetry(any(), eq("validateOwnership"));
             verify(retryHelper).executeWithRetry(any(), eq("isQuestionBankActive"));
+        }
+
+        @Test
+        @Epic("Security Breach Protection")
+        @Story("023.token-privilege-escalation-prevention")
+        @DisplayName("QuestionBankOwnershipValidatorTest.Should log privilege escalation when accessing inactive question bank")
+        @Description("US-023: Verifies that privilege escalation attempts are logged when user tries to access inactive question bank")
+        void shouldLogPrivilegeEscalationWhenAccessingInactiveQuestionBank() {
+            // Arrange
+            when(retryHelper.executeWithRetry(any(), eq("validateOwnership")))
+                .thenAnswer(invocation -> invocation.getArgument(0, java.util.function.Supplier.class).get());
+            when(retryHelper.executeWithRetry(any(), eq("isQuestionBankActive")))
+                .thenAnswer(invocation -> invocation.getArgument(0, java.util.function.Supplier.class).get());
+
+            when(repository.validateOwnership(1001L, 2002L))
+                .thenReturn(Result.success(true));
+            when(repository.isQuestionBankActive(1001L, 2002L))
+                .thenReturn(Result.success(false));
+
+            // Act
+            var result = validator.validate(validCommand);
+
+            // Assert - Validation should fail
+            assertThat(result.isFailure()).isTrue();
+            assertThat(result.getErrorCode()).isEqualTo("UNAUTHORIZED_ACCESS");
+
+            // US-023: Verify privilege escalation event was logged for inactive resource access
+            verify(securityAuditLogger).logSecurityEventAsync(
+                org.mockito.ArgumentMatchers.argThat(event ->
+                    event.getType() == com.quizfun.questionbank.application.security.SecurityEventType.TOKEN_PRIVILEGE_ESCALATION &&
+                    event.getUserId().equals(1001L) &&
+                    event.getSeverity() == com.quizfun.questionbank.application.security.SeverityLevel.HIGH &&
+                    event.getDetails().containsKey("violationType") &&
+                    event.getDetails().get("violationType").equals("INACTIVE_RESOURCE_ACCESS") &&
+                    event.getDetails().get("questionBankId").equals(2002L)
+                )
+            );
         }
     }
 

@@ -8,7 +8,8 @@ public enum ValidationErrorCode {
     INVALID_QUESTION_TYPE("Invalid question type"),
     DUPLICATE_SOURCE_QUESTION_ID("Source question ID already exists"),
     INVALID_AUTHENTICATION_TOKEN("Invalid or missing authentication token"),
-    PATH_PARAMETER_MANIPULATION("Token user ID does not match path parameter user ID");
+    PATH_PARAMETER_MANIPULATION("Token user ID does not match path parameter user ID"),
+    SESSION_SECURITY_VIOLATION("Session security violation detected");
 
     private final String message;
 

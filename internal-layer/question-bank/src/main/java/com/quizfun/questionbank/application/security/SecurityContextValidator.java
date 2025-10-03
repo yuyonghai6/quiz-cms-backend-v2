@@ -12,11 +12,22 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
  * SecurityContextValidator extends the existing ValidationHandler to provide
  * comprehensive security validation for JWT token consistency with path parameters.
  *
+ * Enhanced with US-022 Path Parameter Manipulation Detection:
+ * - Sophisticated attack pattern detection
+ * - Structured security event logging (SecurityEvent model)
+ * - Performance-optimized validation (<15ms requirement for US-022)
+ * - Integration with US-021 MongoDB audit trail
+ *
  * This validator implements defense-in-depth security by:
  * 1. Validating JWT token user ID matches path parameter user ID
- * 2. Comprehensive security event logging for audit compliance
- * 3. Performance-optimized validation (<20ms requirement)
- * 4. Integration with existing US-003 validation chain infrastructure
+ * 2. Detecting path parameter manipulation attacks (US-022)
+ * 3. Comprehensive security event logging with full context
+ * 4. Performance monitoring and metrics collection
+ * 5. Integration with existing US-003 validation chain infrastructure
+ *
+ * @see SecurityEvent
+ * @see SecurityEventType
+ * @see SecurityAuditLogger
  */
 public class SecurityContextValidator extends ValidationHandler {
 
@@ -64,16 +75,21 @@ public class SecurityContextValidator extends ValidationHandler {
             // 1. Extract and validate authentication context
             var authContext = SecurityContextHolder.getContext().getAuthentication();
             if (authContext == null) {
-                logSecurityViolation("MISSING_AUTHENTICATION", null,
-                    "Request received without authentication context");
+                logSecurityEvent(SecurityEventType.MISSING_AUTHENTICATION, null,
+                    SeverityLevel.HIGH, null,
+                    java.util.Map.of("error", "Request received without authentication context"));
                 return createSecurityFailureResult(ValidationErrorCode.INVALID_AUTHENTICATION_TOKEN,
                     "Authentication required");
             }
 
             // 2. Validate JWT authentication token type
             if (!(authContext instanceof JwtAuthenticationToken jwtToken)) {
-                logSecurityViolation("INVALID_TOKEN_TYPE", null,
-                    "Non-JWT authentication token detected: " + authContext.getClass().getSimpleName());
+                logSecurityEvent(SecurityEventType.INVALID_TOKEN_TYPE, null,
+                    SeverityLevel.HIGH, null,
+                    java.util.Map.of(
+                        "error", "Non-JWT authentication token detected",
+                        "tokenType", authContext.getClass().getSimpleName()
+                    ));
                 return createSecurityFailureResult(ValidationErrorCode.INVALID_AUTHENTICATION_TOKEN,
                     "Invalid authentication token type");
             }
@@ -81,32 +97,51 @@ public class SecurityContextValidator extends ValidationHandler {
             // 3. Extract user ID from JWT token
             Long tokenUserId = extractUserIdFromToken(jwtToken);
             if (tokenUserId == null) {
-                logSecurityViolation("INVALID_TOKEN_SUBJECT", null,
-                    "JWT token missing or invalid subject claim");
+                logSecurityEvent(SecurityEventType.INVALID_TOKEN_SUBJECT, null,
+                    SeverityLevel.HIGH, null,
+                    java.util.Map.of("error", "JWT token missing or invalid subject claim"));
                 return createSecurityFailureResult(ValidationErrorCode.INVALID_AUTHENTICATION_TOKEN,
                     "Invalid token subject");
             }
 
-            // 4. Validate token user ID matches path parameter user ID
+            // 4. US-022: Detect path parameter manipulation attacks
             Long pathUserId = upsertCommand.getUserId();
             if (!tokenUserId.equals(pathUserId)) {
-                logSecurityViolation("PATH_PARAMETER_MANIPULATION", tokenUserId,
-                    String.format("Token user %d attempted access to user %d resources",
-                        tokenUserId, pathUserId));
+                // Critical security violation: Path parameter manipulation detected
+                logSecurityEvent(SecurityEventType.PATH_PARAMETER_MANIPULATION, tokenUserId,
+                    SeverityLevel.CRITICAL, upsertCommand.getQuestionBankId(),
+                    java.util.Map.of(
+                        "tokenUserId", tokenUserId,
+                        "pathUserId", pathUserId,
+                        "questionBankId", upsertCommand.getQuestionBankId(),
+                        "sourceQuestionId", upsertCommand.getSourceQuestionId(),
+                        "attackPattern", "USER_ID_MISMATCH",
+                        "detectionMethod", "JWT_PATH_COMPARISON"
+                    ));
                 return createSecurityFailureResult(ValidationErrorCode.UNAUTHORIZED_ACCESS,
                     "Access denied");
             }
 
-            // 5. Log successful security validation for monitoring
-            auditLogger.logSuccessfulAccess(tokenUserId, upsertCommand.getQuestionBankId(), "SECURITY_VALIDATION");
+            // 5. Log successful security validation for baseline monitoring
+            logSecurityEvent(SecurityEventType.SECURITY_VALIDATION_SUCCESS, tokenUserId,
+                SeverityLevel.INFO, upsertCommand.getQuestionBankId(),
+                java.util.Map.of(
+                    "operation", "SECURITY_VALIDATION",
+                    "questionBankId", upsertCommand.getQuestionBankId()
+                ));
 
             // 6. Continue to next validator in chain
             return checkNext(command);
 
         } catch (Exception e) {
             // Handle unexpected errors during security validation
-            logSecurityViolation("SECURITY_VALIDATION_ERROR", null,
-                "Unexpected error during security validation: " + e.getMessage());
+            logSecurityEvent(SecurityEventType.SECURITY_VALIDATION_ERROR, null,
+                SeverityLevel.HIGH, null,
+                java.util.Map.of(
+                    "error", "Unexpected error during security validation",
+                    "exceptionType", e.getClass().getSimpleName(),
+                    "message", e.getMessage() != null ? e.getMessage() : "Unknown error"
+                ));
             return createSecurityFailureResult(ValidationErrorCode.INVALID_AUTHENTICATION_TOKEN,
                 "Security validation failed");
         } finally {
@@ -138,8 +173,36 @@ public class SecurityContextValidator extends ValidationHandler {
     }
 
     /**
-     * Logs security violations with comprehensive audit information.
+     * Logs security events using the new SecurityEvent model from US-021.
+     * Enhanced for US-022 with comprehensive context information.
+     *
+     * @param eventType The type of security event
+     * @param userId The user ID involved (can be null for unauthenticated requests)
+     * @param severity The severity level of the event
+     * @param questionBankId The question bank ID (can be null)
+     * @param details Additional context as key-value pairs
      */
+    private void logSecurityEvent(SecurityEventType eventType, Long userId,
+                                  SeverityLevel severity, Long questionBankId,
+                                  java.util.Map<String, Object> details) {
+        if (auditLogger != null) {
+            SecurityEvent event = SecurityEvent.builder()
+                .type(eventType)
+                .userId(userId)
+                .severity(severity)
+                .details(details)
+                .build();
+
+            // Log asynchronously to avoid impacting request performance (US-022: <15ms)
+            auditLogger.logSecurityEventAsync(event);
+        }
+    }
+
+    /**
+     * Legacy method for backward compatibility.
+     * @deprecated Use {@link #logSecurityEvent} instead
+     */
+    @Deprecated
     private void logSecurityViolation(String eventType, Long tokenUserId, String details) {
         if (auditLogger != null) {
             auditLogger.logSecurityViolation(eventType, tokenUserId, details);
