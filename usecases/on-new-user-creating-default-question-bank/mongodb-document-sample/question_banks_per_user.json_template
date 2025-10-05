@@ -1,0 +1,53 @@
+{
+  // MongoDB Collection: question_banks_per_user
+  // Purpose: Central registry document for a new user's question banks
+  // Business Rule: One document per user_id (enforced by unique index)
+  // Domain Aggregate: QuestionBanksPerUserAggregate
+
+  "_id": "{{GENERATED_OBJECT_ID}}",
+
+  // User identifier from the user creation event
+  "user_id": "{{NEW_USER_ID}}",
+
+  // Default question bank ID - must reference a bank_id in question_banks array
+  // Business Rule: default_question_bank_id must exist in question_banks array
+  "default_question_bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+
+  // Embedded array of question banks for this user
+  // Design Decision: Embedded array avoids joins and supports atomic updates
+  "question_banks": [
+    {
+      // Unique identifier for this question bank
+      "bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+
+      // User-friendly name for the default question bank
+      "name": "Default Question Bank",
+
+      // Description to help users understand the purpose
+      "description": "Your default question bank for getting started with quiz creation",
+
+      // Active status - Business Rule: Only active banks can be used for questions
+      // Domain validation: QuestionBanksPerUserAggregate.validateOwnership() checks this
+      "is_active": true,
+
+      // Audit timestamps for bank creation
+      "created_at": "{{CURRENT_TIMESTAMP}}",
+      "updated_at": "{{CURRENT_TIMESTAMP}}"
+    }
+  ],
+
+  // Document-level audit timestamps
+  "created_at": "{{CURRENT_TIMESTAMP}}",
+  "updated_at": "{{CURRENT_TIMESTAMP}}"
+
+  // Index Requirements:
+  // 1. Unique index on user_id (enforces one document per user)
+  // 2. Compound index on (user_id, question_banks.bank_id) for fast bank lookups
+  // 3. Compound index on (user_id, default_question_bank_id) for default bank access
+
+  // Validation Rules (enforced by QuestionBanksPerUserAggregate):
+  // - user_id must be positive integer
+  // - default_question_bank_id must reference an active bank in question_banks array
+  // - All bank_id values must be unique within the question_banks array
+  // - At least one question bank must be active
+}

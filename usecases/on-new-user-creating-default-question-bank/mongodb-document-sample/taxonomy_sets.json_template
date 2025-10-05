@@ -1,0 +1,106 @@
+{
+  // MongoDB Collection: taxonomy_sets
+  // Purpose: Default taxonomy structure for the new user's default question bank
+  // Business Rule: One document per (user_id, question_bank_id) pair (enforced by unique index)
+  // Domain Aggregate: TaxonomySetAggregate
+
+  "_id": "{{GENERATED_OBJECT_ID}}",
+
+  // User identifier - must match the user from question_banks_per_user
+  "user_id": "{{NEW_USER_ID}}",
+
+  // Question bank identifier - must match bank_id from question_banks_per_user
+  "question_bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+
+  // Category hierarchy - using minimal structure to avoid validation gaps
+  // Design Decision: Only level_1 to prevent category hierarchy validation issues
+  // Business Rule: TaxonomySetAggregate.validateCategoryHierarchy() checks parent-child relationships
+  "categories": {
+    // Level 1: Root category (no parent required)
+    "level_1": {
+      "id": "general",
+      "name": "General",
+      "slug": "general",
+      "parent_id": null
+    }
+    // Note: No level_2, level_3, level_4 to avoid hierarchy validation complexity
+    // Users can add more specific categories through the UI later
+  },
+
+  // Basic starter tags to provide immediate usability
+  // Design Decision: Minimal set of universally applicable tags
+  "tags": [
+    {
+      "id": "beginner",
+      "name": "Beginner",
+      "color": "#28a745"  // Bootstrap success green
+    },
+    {
+      "id": "practice",
+      "name": "Practice",
+      "color": "#007bff"  // Bootstrap primary blue
+    },
+    {
+      "id": "quick-test",
+      "name": "Quick Test",
+      "color": "#6f42c1"  // Bootstrap secondary purple
+    }
+  ],
+
+  // Empty quizzes array - users will create quizzes through the application
+  // Design Decision: No default quizzes to avoid content pollution
+  "quizzes": [],
+
+  // Default difficulty level - starts with easiest setting
+  // Business Rule: TaxonomySetAggregate validates this matches available_difficulty_levels
+  "current_difficulty_level": {
+    "level": "easy",
+    "numeric_value": 1,
+    "description": "Suitable for beginners and initial learning"
+  },
+
+  // Standard difficulty levels that will be available for all question banks
+  // Design Decision: Covers typical educational difficulty progression
+  "available_difficulty_levels": [
+    {
+      "level": "easy",
+      "numeric_value": 1,
+      "description": "Suitable for beginners and initial learning"
+    },
+    {
+      "level": "medium",
+      "numeric_value": 2,
+      "description": "Intermediate knowledge required"
+    },
+    {
+      "level": "hard",
+      "numeric_value": 3,
+      "description": "Advanced understanding needed"
+    }
+  ],
+
+  // Document-level audit timestamps
+  "created_at": "{{CURRENT_TIMESTAMP}}",
+  "updated_at": "{{CURRENT_TIMESTAMP}}"
+
+  // Index Requirements:
+  // 1. Unique compound index on (user_id, question_bank_id) - one taxonomy set per bank
+  // 2. Index on (user_id, question_bank_id, "categories.level_1.id") for category lookups
+  // 3. Index on (user_id, question_bank_id, "tags.id") for tag validation
+  // 4. Index on (user_id, question_bank_id, "current_difficulty_level.level") for difficulty queries
+
+  // Validation Rules (enforced by TaxonomySetAggregate):
+  // - user_id and question_bank_id must be positive integers
+  // - Category hierarchy must be valid (no gaps between levels)
+  // - All tag IDs must be unique within the tags array
+  // - current_difficulty_level.level must exist in available_difficulty_levels
+  // - Tag colors should be valid hex color codes
+  // - Quiz IDs must be unique within the quizzes array (when populated)
+
+  // Taxonomy ID Collection (for validation):
+  // Valid taxonomy IDs that can be referenced in question_taxonomy_relationships:
+  // - Category IDs: "general" (from level_1)
+  // - Tag IDs: "beginner", "practice", "quick-test"
+  // - Difficulty IDs: "easy", "medium", "hard"
+  // - Quiz IDs: (none initially - will be added when users create quizzes)
+}
