@@ -38,7 +38,7 @@ mvn clean install
 # Run the main Spring Boot application
 mvn spring-boot:run -pl orchestration-layer
 
-# Alternative using Maven wrapper (if available)
+# Alternative using Maven wrapper
 ./orchestration-layer/mvnw spring-boot:run
 
 # Run with specific profile
@@ -61,6 +61,15 @@ mvn verify
 
 # Run coverage check only (fails if below 70%)
 mvn jacoco:check
+
+# Run specific test class
+mvn test -pl internal-layer/question-bank -Dtest=QuestionApplicationServiceIntegrationTest
+
+# Run specific test method
+mvn test -pl internal-layer/shared -Dtest=ResultTest#shouldCreateSuccessfulResultWithValue
+
+# Run tests without JaCoCo coverage (faster for development)
+mvn test -pl internal-layer/question-bank -Djacoco.skip=true
 ```
 
 ### Allure Reporting
@@ -79,11 +88,17 @@ open target/allure-report/index.html
 
 # Clean old results before new test run (recommended)
 rm -rf target/allure-results
+
+# Using Makefile for cross-module Allure reporting
+make test                    # Run tests across all modules
+make allure-generate         # Generate consolidated Allure report
+make allure-open            # Open the generated report
+make allure                 # Run tests, generate and open report
 ```
 
 ## Development Notes
 
-- The `orchestration-layer` is the main runnable Spring Boot application (runs on port 8080 by default)
+- The `orchestration-layer` is the main runnable Spring Boot application (runs on port 8765 by default)
 - Other modules are libraries that can be dependencies of the orchestration layer
 - Lombok is configured for annotation processing in the orchestration layer
 - Testcontainers is set up for integration testing
