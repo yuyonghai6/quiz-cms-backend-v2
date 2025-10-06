@@ -24,7 +24,9 @@
       "Bash(docker ps:*)",
       "Bash(mvn compile:*)",
       "Bash(grep:*)",
-      "Bash(mvn -Dtest=QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)"
+      "Bash(mvn -Dtest=QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn -Dtest=LongIdGeneratorTest test -pl global-shared-library)",
+      "Bash(mvn allure:report:*)"
     ]
   },
   "outputStyle": "Learning"

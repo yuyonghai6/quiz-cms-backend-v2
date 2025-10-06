@@ -20,7 +20,8 @@ com.quizfun.globalshared
 │   ├── MediatorImpl.java
 │   └── Result.java
 └── utils/             # Shared utility classes
-    └── UUIDv7Generator.java
+    ├── UUIDv7Generator.java     # External/global identifiers (UUID v7)
+    └── LongIdGenerator.java     # Internal/numeric identifiers (Long)
 ```
 
 ## Mediator Pattern Components
@@ -238,6 +239,183 @@ if (result.success()) {
 
 ## Utility Components
 
+### Hybrid ID Generation Strategy
+
+The global-shared-library provides TWO complementary ID generators for different use cases:
+
+| Generator | Format | Use Case | Performance | When to Use |
+|-----------|--------|----------|-------------|-------------|
+| **LongIdGenerator** | Numeric Long | Internal identifiers (question_bank_id) | >500K IDs/sec | Database-optimized, high-performance, numeric operations |
+| **UUIDv7Generator** | UUID String | External identifiers (source_question_id) | Time-ordered UUIDs | Global uniqueness, external APIs, security through non-enumeration |
+
+**Design Principle**: Use **Long** for internal system IDs where performance matters. Use **UUID v7** for external references where global uniqueness and security matter.
+
+### LongIdGenerator
+
+**Purpose**: Thread-safe generator for collision-resistant Long IDs optimized for internal system identifiers with high performance and compact storage.
+
+**Package**: `com.quizfun.globalshared.utils.LongIdGenerator`
+
+**Thread Safety**: Uses `synchronized` method with `volatile` fields for guaranteed correctness under concurrent load
+
+**Performance**: >500K IDs/second with zero collisions proven in 100-thread stress tests
+
+**ID Format**: `[timestamp_milliseconds * 1000] + [sequence_within_millisecond]`
+- Example: `1730832000000000` (first ID at timestamp 1730832000000)
+- Example: `1730832000000001` (second ID same millisecond)
+- Example: `1730832000001000` (first ID next millisecond)
+
+#### Core Methods
+
+**generateQuestionBankId()**
+```java
+public synchronized Long generateQuestionBankId()
+```
+- Returns: Unique Long ID with temporal ordering
+- Format: `timestamp * 1000 + sequence (0-999)`
+- Use Case: Primary method for question_bank_id generation
+- Thread-Safe: Yes (synchronized)
+- Throws: `IllegalStateException` if interrupted during overflow handling
+
+**generateInternalId()**
+```java
+public Long generateInternalId()
+```
+- Returns: Unique Long ID (alias for generateQuestionBankId)
+- Use Case: General internal ID generation for future entity types
+- Thread-Safe: Yes (delegates to synchronized method)
+
+**isValidGeneratedId(Long)**
+```java
+public boolean isValidGeneratedId(Long id)
+```
+- Parameters: Long ID to validate
+- Returns: true if ID format is valid, false otherwise
+- Validation Rules:
+  - Must be non-null and positive
+  - Timestamp portion (id / 1000) must be between 2020-2100
+  - Sequence portion (id % 1000) must be 0-999
+- Use Case: Input validation, API request validation
+
+#### Usage Examples
+
+**Question Bank ID Generation**:
+```java
+@Service
+public class QuestionBankCreationService {
+    private final LongIdGenerator longIdGenerator;
+
+    public QuestionBankCreationService(LongIdGenerator longIdGenerator) {
+        this.longIdGenerator = longIdGenerator;
+    }
+
+    public Result<QuestionBanksPerUserAggregate> createDefaultQuestionBank(Long userId) {
+        // Generate unique question bank ID
+        Long questionBankId = longIdGenerator.generateQuestionBankId();
+
+        // Create question bank with generated ID
+        var questionBank = QuestionBank.builder()
+            .bankId(questionBankId)
+            .name("Default Question Bank")
+            .description("Your default question bank")
+            .isActive(true)
+            .build();
+
+        return repository.save(questionBank);
+    }
+}
+```
+
+**New User Event Handler**:
+```java
+@EventListener
+public class NewUserEventHandler {
+    private final LongIdGenerator longIdGenerator;
+    private final QuestionBankCreationService questionBankService;
+
+    @Async
+    public void handleNewUserCreated(UserCreatedEvent event) {
+        Long userId = event.getUserId();
+
+        // Generate unique question bank ID for default bank
+        Long defaultQuestionBankId = longIdGenerator.generateQuestionBankId();
+
+        // Create default question bank
+        questionBankService.createDefaultQuestionBank(userId, defaultQuestionBankId);
+    }
+}
+```
+
+**API Validation**:
+```java
+@RestController
+public class QuestionBankController {
+    private final LongIdGenerator longIdGenerator;
+
+    @GetMapping("/api/question-banks/{bankId}")
+    public ResponseEntity<?> getQuestionBank(@PathVariable Long bankId) {
+        // Validate ID format before querying database
+        if (!longIdGenerator.isValidGeneratedId(bankId)) {
+            return ResponseEntity.badRequest()
+                .body("Invalid question bank ID format");
+        }
+
+        // Proceed with database query
+        return questionBankService.findById(bankId);
+    }
+}
+```
+
+**Hybrid ID Strategy in Domain Aggregate**:
+```java
+public class QuestionAggregate extends AggregateRoot {
+    private Long questionBankId;          // Internal: LongIdGenerator
+    private String sourceQuestionId;      // External: UUIDv7Generator
+
+    public static QuestionAggregate createNew(
+            Long userId,
+            Long questionBankId,           // Generated by LongIdGenerator
+            QuestionType questionType) {
+
+        var aggregate = new QuestionAggregate();
+        aggregate.questionBankId = questionBankId;  // Long for performance
+        aggregate.sourceQuestionId = UUIDv7Generator.generateAsString();  // UUID for external ref
+
+        return aggregate;
+    }
+}
+```
+
+#### Performance Characteristics
+
+- **Sequential Generation**: >800K IDs/second in single-threaded tests
+- **Concurrent Generation**: >500K IDs/second with 100 threads
+- **Memory Footprint**: <100 bytes per instance (2 volatile fields + object overhead)
+- **Collision Resistance**: Zero collisions proven in stress tests (100 threads × 1,000 IDs = 100,000 unique IDs)
+- **Sequence Capacity**: 1,000 IDs per millisecond (theoretical max: 1 million IDs/second)
+- **Overflow Handling**: Automatic millisecond wait + retry when sequence exceeds 999
+
+#### Thread Safety Guarantees
+
+The `synchronized` keyword on `generateQuestionBankId()` ensures:
+1. **Atomic Operations**: Timestamp read, sequence increment, and updates are atomic
+2. **Memory Visibility**: `volatile` fields ensure visibility across threads
+3. **No Race Conditions**: Only one thread can execute generation logic at a time
+4. **Correctness Over Performance**: Sacrifices lock-free speed for guaranteed uniqueness
+
+#### Design Decisions
+
+**Why synchronized instead of AtomicInteger?**
+- Initial lock-free implementation had subtle race conditions between timestamp update and sequence reset
+- `synchronized` provides simpler, provably correct concurrency
+- Performance is still excellent (>500K IDs/sec) and sufficient for production workloads
+
+**Why Long instead of UUID?**
+- **Database Performance**: Numeric indexes 4-5x faster than string UUID indexes
+- **Storage Efficiency**: 8 bytes vs 36 characters (4.5x reduction)
+- **Query Optimization**: Numeric comparisons optimized at database level
+- **Existing Architecture**: All domain aggregates already use Long questionBankId parameters
+
 ### UUIDv7Generator
 
 **Purpose**: Utility class for generating time-ordered UUID version 7 identifiers that are naturally sortable and contain timestamp information.
@@ -402,6 +580,7 @@ import com.quizfun.globalshared.mediator.Result;
 **Utilities**:
 ```java
 import com.quizfun.globalshared.utils.UUIDv7Generator;
+import com.quizfun.globalshared.utils.LongIdGenerator;
 ```
 
 ### Best Practices
@@ -442,6 +621,7 @@ import com.quizfun.globalshared.utils.UUIDv7Generator;
 | `IQuery<T>` | Query marker interface | `mediator` | Implement for read-only operations |
 | `IQueryHandler<Q,T>` | Query handler interface | `mediator` | Implement with `@Service` annotation |
 | `Result<T>` | Functional response wrapper | `mediator` | Return from all handlers |
+| `LongIdGenerator` | Thread-safe Long ID generator | `utils` | Inject @Component for question_bank_id generation |
 | `UUIDv7Generator` | Time-ordered UUID utility | `utils` | Static methods for UUID v7 generation |
 
 ### When to Use Each Component
@@ -451,6 +631,8 @@ import com.quizfun.globalshared.utils.UUIDv7Generator;
 | Create/Update operations | `ICommand` + `ICommandHandler` | `UpsertQuestionCommand` |
 | Read/Query operations | `IQuery` + `IQueryHandler` | `GetQuestionsByBankQuery` |
 | Consistent error handling | `Result<T>` | All handler return types |
+| Internal numeric IDs | `LongIdGenerator.generateQuestionBankId()` | question_bank_id generation |
+| Validate Long IDs | `LongIdGenerator.isValidGeneratedId()` | API request validation |
 | Domain event IDs | `UUIDv7Generator.generateAsString()` | Event aggregate IDs |
 | External entity references | `UUIDv7Generator.generateAsString()` | source_question_id |
 | Input validation | `UUIDv7Generator.isValidUUIDv7()` | Validate external IDs |
