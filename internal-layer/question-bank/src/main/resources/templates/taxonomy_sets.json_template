@@ -1,0 +1,55 @@
+{
+  "_id": "{{GENERATED_OBJECT_ID}}",
+  "user_id": "{{NEW_USER_ID}}",
+  "question_bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+  "categories": {
+    "level_1": {
+      "id": "general",
+      "name": "General",
+      "slug": "general",
+      "parent_id": null
+    }
+  },
+  "tags": [
+    {
+      "id": "beginner",
+      "name": "Beginner",
+      "color": "#28a745"
+    },
+    {
+      "id": "practice",
+      "name": "Practice",
+      "color": "#007bff"
+    },
+    {
+      "id": "quick-test",
+      "name": "Quick Test",
+      "color": "#6f42c1"
+    }
+  ],
+  "quizzes": [],
+  "current_difficulty_level": {
+    "level": "easy",
+    "numeric_value": 1,
+    "description": "Suitable for beginners and initial learning"
+  },
+  "available_difficulty_levels": [
+    {
+      "level": "easy",
+      "numeric_value": 1,
+      "description": "Suitable for beginners and initial learning"
+    },
+    {
+      "level": "medium",
+      "numeric_value": 2,
+      "description": "Intermediate knowledge required"
+    },
+    {
+      "level": "hard",
+      "numeric_value": 3,
+      "description": "Advanced understanding needed"
+    }
+  ],
+  "created_at": "{{CURRENT_TIMESTAMP}}",
+  "updated_at": "{{CURRENT_TIMESTAMP}}"
+}

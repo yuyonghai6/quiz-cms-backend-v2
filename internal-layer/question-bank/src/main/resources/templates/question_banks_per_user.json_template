@@ -1,0 +1,17 @@
+{
+  "_id": "{{GENERATED_OBJECT_ID}}",
+  "user_id": "{{NEW_USER_ID}}",
+  "default_question_bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+  "question_banks": [
+    {
+      "bank_id": "{{GENERATED_DEFAULT_BANK_ID}}",
+      "name": "Default Question Bank",
+      "description": "Your default question bank for getting started with quiz creation",
+      "is_active": true,
+      "created_at": "{{CURRENT_TIMESTAMP}}",
+      "updated_at": "{{CURRENT_TIMESTAMP}}"
+    }
+  ],
+  "created_at": "{{CURRENT_TIMESTAMP}}",
+  "updated_at": "{{CURRENT_TIMESTAMP}}"
+}

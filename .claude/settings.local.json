@@ -26,7 +26,10 @@
       "Bash(grep:*)",
       "Bash(mvn -Dtest=QuestionApplicationServiceIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
       "Bash(mvn -Dtest=LongIdGeneratorTest test -pl global-shared-library)",
-      "Bash(mvn allure:report:*)"
+      "Bash(mvn allure:report:*)",
+      "Bash(mvn -Dtest=TemplateVariableReplacerTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn test-compile:*)",
+      "Bash(mvn -Dtest=MongoDefaultQuestionBankRepositoryIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)"
     ]
   },
   "outputStyle": "Learning"

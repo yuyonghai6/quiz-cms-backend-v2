@@ -12,6 +12,7 @@ public class DefaultQuestionBankResponseDto {
     private final Long userId;
     private final Long questionBankId;
     private final String questionBankName;
+    private final String description;
     private final boolean isActive;
     private final boolean taxonomySetCreated;
     private final Map<String, Object> availableTaxonomy;
@@ -21,6 +22,7 @@ public class DefaultQuestionBankResponseDto {
         this.userId = builder.userId;
         this.questionBankId = builder.questionBankId;
         this.questionBankName = builder.questionBankName;
+        this.description = builder.description;
         this.isActive = builder.isActive;
         this.taxonomySetCreated = builder.taxonomySetCreated;
         this.availableTaxonomy = builder.availableTaxonomy != null
@@ -46,6 +48,10 @@ public class DefaultQuestionBankResponseDto {
         return questionBankName;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
     public boolean isActive() {
         return isActive;
     }
@@ -66,6 +72,7 @@ public class DefaultQuestionBankResponseDto {
         private Long userId;
         private Long questionBankId;
         private String questionBankName;
+        private String description;
         private boolean isActive;
         private boolean taxonomySetCreated;
         private Map<String, Object> availableTaxonomy;
@@ -83,6 +90,11 @@ public class DefaultQuestionBankResponseDto {
 
         public Builder questionBankName(String questionBankName) {
             this.questionBankName = questionBankName;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
             return this;
         }
 

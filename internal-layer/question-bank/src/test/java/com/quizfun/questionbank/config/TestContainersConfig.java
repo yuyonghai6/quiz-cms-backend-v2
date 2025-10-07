@@ -51,7 +51,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     basePackages = {
         "com.quizfun.questionbank.application",
         "com.quizfun.questionbank.domain",
-        "com.quizfun.questionbank.infrastructure"
+        "com.quizfun.questionbank.infrastructure",
+        "com.quizfun.globalshared"
     },
     excludeFilters = {
         @Filter(type = FilterType.ASSIGNABLE_TYPE, value = com.quizfun.questionbank.infrastructure.configuration.MongoTransactionConfig.class)
