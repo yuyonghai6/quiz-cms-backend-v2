@@ -29,7 +29,10 @@
       "Bash(mvn allure:report:*)",
       "Bash(mvn -Dtest=TemplateVariableReplacerTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
       "Bash(mvn test-compile:*)",
-      "Bash(mvn -Dtest=MongoDefaultQuestionBankRepositoryIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)"
+      "Bash(mvn -Dtest=MongoDefaultQuestionBankRepositoryIntegrationTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn -Dtest=DefaultQuestionBankApplicationServiceTest test -pl internal-layer/question-bank -Djacoco.skip=true)",
+      "Bash(mvn -Dtest=DefaultQuestionBankApplicationServiceTest test -pl internal-layer/question-bank)",
+      "Bash(mvn -Dtest=DefaultQuestionBankControllerTest test -pl orchestration-layer -Djacoco.skip=true)"
     ]
   },
   "outputStyle": "Learning"
