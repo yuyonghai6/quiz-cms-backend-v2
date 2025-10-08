@@ -4,12 +4,18 @@ import com.quizfun.questionbank.domain.entities.QuestionBank;
 import com.quizfun.shared.domain.AggregateRoot;
 import org.bson.types.ObjectId;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class QuestionBanksPerUserAggregate extends AggregateRoot {
+
+    // Default question bank constants
+    private static final String DEFAULT_BANK_NAME = "Default Question Bank";
+    private static final String DEFAULT_BANK_DESCRIPTION = "Your default question bank for getting started with quiz creation";
+
     private ObjectId id;
     private Long userId;
     private Long defaultQuestionBankId;
@@ -33,6 +39,46 @@ public class QuestionBanksPerUserAggregate extends AggregateRoot {
         aggregate.markCreatedNow();
 
         return aggregate;
+    }
+
+    /**
+     * Factory method for creating default question bank aggregate for new users.
+     *
+     * Creates a single default question bank with standard name and description,
+     * sets it as the default bank, and marks it as active.
+     *
+     * @param userId The user ID for the new user
+     * @param questionBankId The generated question bank ID
+     * @param timestamp The creation timestamp
+     * @return New aggregate with default question bank
+     * @throws NullPointerException if any parameter is null
+     */
+    public static QuestionBanksPerUserAggregate createDefault(
+            Long userId,
+            Long questionBankId,
+            Instant timestamp) {
+
+        Objects.requireNonNull(userId, "User ID cannot be null");
+        Objects.requireNonNull(questionBankId, "Question Bank ID cannot be null");
+        Objects.requireNonNull(timestamp, "Timestamp cannot be null");
+
+        // Create default question bank entity
+        QuestionBank defaultBank = new QuestionBank(
+            questionBankId,
+            DEFAULT_BANK_NAME,
+            DEFAULT_BANK_DESCRIPTION,
+            true,  // isActive
+            timestamp,
+            timestamp
+        );
+
+        // Create aggregate with default bank
+        return create(
+            new ObjectId(),
+            userId,
+            questionBankId,
+            List.of(defaultBank)
+        );
     }
 
     public boolean validateOwnership(Long userId, Long questionBankId) {

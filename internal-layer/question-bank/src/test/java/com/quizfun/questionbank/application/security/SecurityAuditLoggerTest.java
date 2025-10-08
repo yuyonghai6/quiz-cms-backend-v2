@@ -1,20 +1,12 @@
 package com.quizfun.questionbank.application.security;
 
+import com.quizfun.questionbank.config.BaseTestConfiguration;
 import com.quizfun.questionbank.infrastructure.persistence.documents.SecurityEventDocument;
 import io.qameta.allure.Description;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.MongoDBContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -36,26 +28,11 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
  *
  * Uses TestContainers for integration testing with real MongoDB instance.
  */
-@SpringBootTest(classes = {com.quizfun.questionbank.config.TestContainersConfig.class})
-@ActiveProfiles("test")
-@Testcontainers
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-class SecurityAuditLoggerTest {
-
-    @Container
-    static MongoDBContainer mongoDBContainer = new MongoDBContainer(DockerImageName.parse("mongo:6.0"))
-            .withReuse(true);
-
-    @DynamicPropertySource
-    static void setProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
-    }
+class SecurityAuditLoggerTest extends BaseTestConfiguration {
 
     @Autowired
     private SecurityAuditLogger auditLogger;
-
-    @Autowired
-    private MongoTemplate mongoTemplate;
 
     @BeforeEach
     void setUp() {

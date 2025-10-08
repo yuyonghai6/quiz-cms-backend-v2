@@ -15,6 +15,31 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class TaxonomySetAggregate extends AggregateRoot {
+
+    // Default taxonomy constants
+    private static final String DEFAULT_CATEGORY_ID = "general";
+    private static final String DEFAULT_CATEGORY_NAME = "General";
+    private static final String DEFAULT_CATEGORY_SLUG = "general";
+
+    private static final String DEFAULT_TAG_BEGINNER_ID = "beginner";
+    private static final String DEFAULT_TAG_BEGINNER_NAME = "Beginner";
+    private static final String DEFAULT_TAG_BEGINNER_COLOR = "#28a745";
+
+    private static final String DEFAULT_TAG_PRACTICE_ID = "practice";
+    private static final String DEFAULT_TAG_PRACTICE_NAME = "Practice";
+    private static final String DEFAULT_TAG_PRACTICE_COLOR = "#007bff";
+
+    private static final String DEFAULT_TAG_QUICKTEST_ID = "quick-test";
+    private static final String DEFAULT_TAG_QUICKTEST_NAME = "Quick Test";
+    private static final String DEFAULT_TAG_QUICKTEST_COLOR = "#6f42c1";
+
+    private static final String DIFFICULTY_EASY = "easy";
+    private static final String DIFFICULTY_EASY_DESC = "Suitable for beginners and initial learning";
+    private static final String DIFFICULTY_MEDIUM = "medium";
+    private static final String DIFFICULTY_MEDIUM_DESC = "Intermediate knowledge required";
+    private static final String DIFFICULTY_HARD = "hard";
+    private static final String DIFFICULTY_HARD_DESC = "Advanced understanding needed";
+
     private ObjectId id;
     private Long userId;
     private Long questionBankId;
@@ -50,6 +75,84 @@ public class TaxonomySetAggregate extends AggregateRoot {
         aggregate.markCreatedNow();
 
         return aggregate;
+    }
+
+    /**
+     * Factory method for creating default taxonomy set for new users.
+     *
+     * Creates minimal taxonomy structure:
+     * - Single category (level_1: "general")
+     * - Three tags: "beginner", "practice", "quick-test"
+     * - Empty quizzes list
+     * - Three difficulty levels (easy, medium, hard)
+     * - Current difficulty set to "easy"
+     *
+     * @param userId The user ID
+     * @param questionBankId The question bank ID
+     * @param timestamp The creation timestamp
+     * @return New aggregate with default taxonomy
+     * @throws NullPointerException if any parameter is null
+     */
+    public static TaxonomySetAggregate createDefault(
+            Long userId,
+            Long questionBankId,
+            Instant timestamp) {
+
+        Objects.requireNonNull(userId, "User ID cannot be null");
+        Objects.requireNonNull(questionBankId, "Question Bank ID cannot be null");
+        Objects.requireNonNull(timestamp, "Timestamp cannot be null");
+
+        // Create default category (only level_1)
+        CategoryLevels.Category generalCategory = new CategoryLevels.Category(
+            DEFAULT_CATEGORY_ID,
+            DEFAULT_CATEGORY_NAME,
+            DEFAULT_CATEGORY_SLUG,
+            null  // No parent for level_1
+        );
+        CategoryLevels categories = new CategoryLevels(generalCategory, null, null, null);
+
+        // Create default tags
+        List<Tag> tags = List.of(
+            new Tag(DEFAULT_TAG_BEGINNER_ID, DEFAULT_TAG_BEGINNER_NAME, DEFAULT_TAG_BEGINNER_COLOR),
+            new Tag(DEFAULT_TAG_PRACTICE_ID, DEFAULT_TAG_PRACTICE_NAME, DEFAULT_TAG_PRACTICE_COLOR),
+            new Tag(DEFAULT_TAG_QUICKTEST_ID, DEFAULT_TAG_QUICKTEST_NAME, DEFAULT_TAG_QUICKTEST_COLOR)
+        );
+
+        // Empty quizzes list
+        List<Quiz> quizzes = List.of();
+
+        // Create difficulty levels
+        DifficultyLevel easy = new DifficultyLevel(
+            DIFFICULTY_EASY,
+            1,
+            DIFFICULTY_EASY_DESC
+        );
+
+        DifficultyLevel medium = new DifficultyLevel(
+            DIFFICULTY_MEDIUM,
+            2,
+            DIFFICULTY_MEDIUM_DESC
+        );
+
+        DifficultyLevel hard = new DifficultyLevel(
+            DIFFICULTY_HARD,
+            3,
+            DIFFICULTY_HARD_DESC
+        );
+
+        List<DifficultyLevel> availableLevels = List.of(easy, medium, hard);
+
+        // Create aggregate with default values
+        return create(
+            new ObjectId(),
+            userId,
+            questionBankId,
+            categories,
+            tags,
+            quizzes,
+            easy,  // Current level is "easy"
+            availableLevels
+        );
     }
 
     public boolean validateTaxonomyReferences(List<String> taxonomyIds) {
@@ -126,6 +229,11 @@ public class TaxonomySetAggregate extends AggregateRoot {
         // Add current difficulty level
         if (currentDifficultyLevel != null) {
             validIds.add(currentDifficultyLevel.getLevel());
+        }
+
+        // Add all available difficulty levels
+        if (availableDifficultyLevels != null) {
+            availableDifficultyLevels.forEach(level -> validIds.add(level.getLevel()));
         }
 
         return validIds;
