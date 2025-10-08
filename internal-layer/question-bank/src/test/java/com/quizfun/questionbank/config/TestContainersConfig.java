@@ -18,11 +18,11 @@ import com.quizfun.questionbank.application.ports.out.TaxonomySetRepository;
 import com.quizfun.shared.common.Result;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
 import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
 import org.springframework.context.annotation.FilterType;
 import org.springframework.data.mongodb.MongoDatabaseFactory;
 import org.springframework.data.mongodb.MongoTransactionManager;
@@ -35,7 +35,7 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootConfiguration
+@SpringBootConfiguration // Clear intent
 @EnableAutoConfiguration(exclude = {
     org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration.class,
     org.springframework.boot.autoconfigure.web.servlet.DispatcherServletAutoConfiguration.class,

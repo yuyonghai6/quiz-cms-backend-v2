@@ -8,13 +8,40 @@ This is a Maven multi-module Spring Boot project with a layered architecture:
 
 - **Root module** (`maven-submodule-base`): Parent POM that manages dependencies and plugins
 - **orchestration-layer**: Spring Boot application module with web and security dependencies
-- **internal-layer**: Internal business logic module with sub-modules:
-  - `question-bank`: Question management functionality
-  - `quiz-session`: Quiz session management functionality
+- **internal-layer**: Internal business logic module with sub-modules following CQRS:
+  - `question-bank`: Question command operations (write/update)
+  - `question-bank-query`: Question query operations (read)
+  - `shared`: Shared DDD building blocks (AggregateRoot, DomainEvent, Result, ValidationHandler)
 - **external-service-proxy**: External service integration module
 - **global-shared-library**: Shared utilities and mediator pattern implementation
+  - `mediator/`: CQRS mediator implementation (IMediator, ICommand, IQuery, handlers)
+  - `utils/`: Shared utilities (LongIdGenerator for internal IDs, thread-safe with >500K IDs/sec)
 
 The project uses Java 21 and Spring Boot 3.5.6 with dependency management centralized in the parent POM.
+
+## CQRS Architecture
+
+The project implements Command Query Responsibility Segregation (CQRS) to separate read and write operations:
+
+### Command Side (question-bank module)
+- Handles write operations: create, update, delete questions
+- Uses domain aggregates (QuestionAggregate, QuestionBanksPerUserAggregate, etc.)
+- Enforces business rules and validation through domain logic
+- Publishes domain events for state changes
+- MongoDB persistence with transactional support
+
+### Query Side (question-bank-query module)
+- Handles read operations with optimized read models
+- Separate from command models for independent scaling
+- Can use different data structures/indexes optimized for queries
+- Query handlers implement `IQueryHandler<Q, T>` and are auto-registered by mediator
+- Package structure mirrors command side but focuses on data retrieval
+
+### Mediator Pattern Integration
+The mediator routes commands and queries to appropriate handlers:
+- Commands: `mediator.send(ICommand<T>)` → command handlers in question-bank
+- Queries: `mediator.send(IQuery<T>)` → query handlers in question-bank-query
+- Handlers auto-registered via Spring's ApplicationContext with reflection-based type resolution
 
 ## Common Commands
 
@@ -105,6 +132,51 @@ make allure                 # Run tests, generate and open report
 - Spring Security is enabled in the orchestration layer
 - Reference projects are available in `reference-projects/` for MongoDB Testcontainer examples
 
+### MongoDB Setup
+**Local Development**:
+Configure MongoDB connection in `orchestration-layer/src/main/resources/application.properties`:
+```properties
+spring.data.mongodb.uri=mongodb://localhost:27017/quizfun
+```
+
+**Integration Tests**:
+- Testcontainers automatically provisions MongoDB containers for tests
+- No manual MongoDB setup required for testing
+- question-bank module configures Surefire for stability:
+  - Single fork execution (`forkCount=1`)
+  - No parallel test execution (`parallel=none`)
+  - Container reuse enabled (`testcontainers.reuse.enable=true`)
+  - Increased metaspace (`-XX:MaxMetaspaceSize=512m`)
+
+## Hexagonal Architecture (Ports and Adapters)
+
+The `question-bank` command module follows hexagonal architecture with clear separation of concerns:
+
+### Application Layer (`application/`)
+- **commands/**: Command objects implementing `ICommand<T>` for CQRS
+- **dto/**: Data transfer objects for cross-layer communication
+- **ports/out/**: Repository interfaces (output ports) - domain contracts for persistence
+- **services/**: Application service implementations coordinating domain logic
+- **validation/**: Business validation logic (ownership, data integrity, taxonomy references)
+- **security/**: Security context validation and audit logging
+
+### Domain Layer (`domain/`)
+Framework-agnostic core business logic:
+- **aggregates/**: Aggregate roots extending `AggregateRoot` (QuestionAggregate, QuestionBanksPerUserAggregate, TaxonomySetAggregate)
+- **entities/**: Domain entities and value objects (QuestionType, DifficultyLevel, McqData, EssayData, etc.)
+- **events/**: Domain events for state changes (QuestionCreatedEvent, QuestionUpdatedEvent, etc.)
+- **services/**: Domain services and strategy pattern implementations (QuestionTypeStrategyFactory)
+
+### Infrastructure Layer (`infrastructure/`)
+External concerns and framework-specific implementations:
+- **persistence/documents/**: MongoDB document models (separate from domain models)
+- **persistence/repositories/**: MongoDB repository implementations (adapters implementing domain ports)
+- **persistence/mappers/**: Bidirectional mappers between domain aggregates and persistence documents
+- **configuration/**: Spring configuration (transactions, async, validation chains)
+- **templates/**: Template processing utilities (TemplateVariableReplacer)
+
+This structure ensures domain logic remains independent of infrastructure concerns, enabling easier testing and framework changes.
+
 ## Cross-Module Development
 
 ### Component Scanning Configuration
@@ -113,16 +185,22 @@ The orchestration layer is configured with cross-module component scanning:
 @SpringBootApplication(scanBasePackages = {
     "com.quizfun.orchestrationlayer",
     "com.quizfun.internallayer",
-    "com.quizfun.globalshared"
+    "com.quizfun.globalshared",
+    "com.quizfun.questionbank"  // Explicitly scan question-bank command module
 })
 ```
 This enables Spring dependency injection across modules. When adding new modules that contain Spring components, update the `scanBasePackages` array.
 
+**Package Structure Note**: The question-bank module uses `com.quizfun.questionbank` as its root package (not `com.quizfun.internallayer.questionbank`). This is why it requires explicit scanning configuration.
+
 ### Module Dependencies
-- `internal-layer`: Contains Spring Boot starter, provides business logic services with question-bank and quiz-session sub-modules
+- `internal-layer`: Parent module containing sub-modules for business logic
+  - `question-bank`: Command-side operations with MongoDB persistence
+  - `question-bank-query`: Query-side operations (read models)
+  - `shared`: DDD building blocks shared across internal modules
 - `external-service-proxy`: Currently minimal, intended for external service integrations
-- `global-shared-library`: Shared utilities and mediator pattern implementation
-- `orchestration-layer`: Main application with web, security, and dependencies on internal-layer and global-shared-library
+- `global-shared-library`: Shared utilities and mediator pattern implementation for CQRS
+- `orchestration-layer`: Main application with web, security, and dependencies on internal modules and global-shared-library
 
 ### Adding New Services Across Modules
 1. Create service in target module with `@Service` annotation
@@ -135,7 +213,7 @@ The orchestration layer has `-parameters` enabled for proper `@RequestParam` bin
 
 ## Mediator Pattern Architecture
 
-The project implements a CQRS-style mediator pattern in the `global-shared-library` module:
+The project implements a CQRS-style mediator pattern in the `global-shared-library` module that routes commands and queries to separate modules:
 
 ### Core Components
 - **IMediator**: Central interface for sending commands (`send(ICommand<T> command)`) and queries (`send(IQuery<T> query)`)
@@ -146,19 +224,27 @@ The project implements a CQRS-style mediator pattern in the `global-shared-libra
 - **Result<T>**: Wrapper for success/failure responses with error handling
 - **MediatorImpl**: Spring service that auto-registers handlers via reflection
 
-### Handler Registration
-The mediator automatically discovers and registers all `@Service` beans implementing `ICommandHandler` and `IQueryHandler` using Spring's `ApplicationContext`. Handler registration uses reflection to extract generic type parameters, enabling type-safe command and query routing.
+### Handler Registration and CQRS Routing
+The mediator automatically discovers and registers all `@Service` beans implementing `ICommandHandler` and `IQueryHandler` using Spring's `ApplicationContext`. Handler registration uses reflection to extract generic type parameters, enabling type-safe routing:
+
+- **Command Handlers** → Registered from `question-bank` module (write operations)
+- **Query Handlers** → Registered from `question-bank-query` module (read operations)
+
+This separation allows:
+- Independent scaling of read vs write workloads
+- Different optimization strategies per side
+- Clear separation of concerns between state changes and data retrieval
 
 ### Usage Patterns
 **Commands (for operations that modify state):**
-1. Create command class implementing `ICommand<ReturnType>`
+1. Create command class implementing `ICommand<ReturnType>` in question-bank module
 2. Create handler class implementing `ICommandHandler<YourCommand, ReturnType>` with `@Service`
-3. Inject `IMediator` and call `mediator.send(command)`
+3. Inject `IMediator` in orchestration-layer and call `mediator.send(command)`
 
 **Queries (for read-only operations):**
-1. Create query class implementing `IQuery<ReturnType>`
+1. Create query class implementing `IQuery<ReturnType>` in question-bank-query module
 2. Create handler class implementing `IQueryHandler<YourQuery, ReturnType>` with `@Service`
-3. Inject `IMediator` and call `mediator.send(query)`
+3. Inject `IMediator` in orchestration-layer and call `mediator.send(query)`
 
 ## Documentation and Examples
 
@@ -206,6 +292,15 @@ The `internal-layer/shared` module provides foundational DDD building blocks:
 - `DomainEvent` and `BaseDomainEvent`: Domain event infrastructure
 - `Result<T>`: Functional result wrapper for error handling
 - `ValidationHandler`: Centralized validation logic
+
+### ID Generation
+The `global-shared-library/utils` module provides ID generation utilities:
+- **LongIdGenerator**: Thread-safe generator for internal entity IDs (question_bank_id, etc.)
+  - Format: `[timestamp_ms * 1000] + [sequence]` for collision-resistant IDs
+  - Performance: >500K IDs/sec with zero collisions under high concurrency
+  - Thread-safe via synchronized methods
+  - Inject via Spring's `@Component` for use in services and aggregates
+  - Validation method `isValidGeneratedId(Long id)` for API input validation
 
 ## important-instruction-reminders
 Do what has been asked; nothing more, nothing less.

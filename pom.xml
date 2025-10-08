@@ -160,7 +160,7 @@
         <module>global-shared-library</module>
         <module>orchestration-layer</module>
         <module>internal-layer/question-bank</module>
-        <module>internal-layer/quiz-session</module>
+        <module>internal-layer/question-bank-query</module>
         <module>internal-layer/shared</module>
     </modules>
 
