@@ -27,7 +27,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Epic("Use Case Query List of Questions of Question Bank")
-@Story("1012.simple-mongodb-query-repository")
+@Story("1012.simple-mongodb-query-repository, 1013.complex-taxonomy-filter-aggregation")
 @Testcontainers
 @SpringBootTest
 @DisplayName("Simple MongoDB Query Repository Integration Tests")
@@ -227,6 +227,98 @@ class MongoQuestionQueryRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should filter by categories using AND logic")
+    void shouldFilterByCategoriesUsingAnd() {
+        Instant now = Instant.now();
+        // has both catA and catB
+        insertQuestion("QB both cats", now, List.of("catA", "catB"), List.of("t1"), List.of("q1"));
+        // has only catA
+        insertQuestion("QB only catA", now, List.of("catA"), List.of("t2"), List.of("q2"));
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .categories(List.of("catA", "catB"))
+                .page(0)
+                .size(10)
+                .build();
+
+        List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
+        assertThat(results).hasSize(1);
+        assertThat(results.getFirst().questionText()).isEqualTo("QB both cats");
+    }
+
+    @Test
+    @DisplayName("Should filter by tags using OR logic")
+    void shouldFilterByTagsUsingOr() {
+        Instant now = Instant.now();
+        insertQuestion("QB tag t1", now, List.of("A"), List.of("t1"), List.of("q1"));
+        insertQuestion("QB tag t2", now, List.of("A"), List.of("t2"), List.of("q2"));
+        insertQuestion("QB tag none", now, List.of("A"), List.of("t3"), List.of("q3"));
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .tags(List.of("t1", "t2"))
+                .page(0)
+                .size(10)
+                .sortBy("questionText")
+                .sortDirection("asc")
+                .build();
+
+        List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
+        assertThat(results).hasSize(2);
+        assertThat(results.stream().map(QuestionDTO::questionText).toList()).containsExactly("QB tag t1", "QB tag t2");
+    }
+
+    @Test
+    @DisplayName("Should filter by quizzes using OR logic")
+    void shouldFilterByQuizzesUsingOr() {
+        Instant now = Instant.now();
+        insertQuestion("QB quiz q1", now, List.of("A"), List.of("t1"), List.of("q1"));
+        insertQuestion("QB quiz q2", now, List.of("A"), List.of("t1"), List.of("q2"));
+        insertQuestion("QB quiz q3", now, List.of("A"), List.of("t1"), List.of("q3"));
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .quizzes(List.of("q2", "q3"))
+                .page(0)
+                .size(10)
+                .sortBy("questionText")
+                .sortDirection("asc")
+                .build();
+
+        List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
+        assertThat(results).hasSize(2);
+        assertThat(results.stream().map(QuestionDTO::questionText).toList()).containsExactly("QB quiz q2", "QB quiz q3");
+    }
+
+    @Test
+    @DisplayName("Should filter by searchText case-insensitively")
+    void shouldFilterBySearchText() {
+        Instant now = Instant.now();
+        insertQuestionWithTimestamp("Paris is the Capital", now);
+        insertQuestionWithTimestamp("Capitalization matters?", now);
+        insertQuestionWithTimestamp("Random content", now);
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .searchText("capital")
+                .page(0)
+                .size(10)
+                .sortBy("questionText")
+                .sortDirection("asc")
+                .build();
+
+        List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
+        assertThat(results).hasSize(2);
+        assertThat(results.stream().map(QuestionDTO::questionText).toList())
+                .containsExactly("Capitalization matters?", "Paris is the Capital");
+    }
+
+    @Test
     @DisplayName("Should map all question fields correctly")
     void shouldMapAllQuestionFieldsCorrectly() {
         Long questionId = 123456789L;
@@ -304,6 +396,24 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                 .questionBankId(TEST_QUESTION_BANK_ID)
                 .questionText(text)
                 .questionType("MCQ")
+                .createdAt(timestamp)
+                .updatedAt(timestamp)
+                .build();
+        mongoTemplate.insert(doc, COLLECTION_NAME);
+    }
+
+    private void insertQuestion(String text, Instant timestamp, List<String> categories, List<String> tags, List<String> quizzes) {
+        QuestionDocument doc = QuestionDocument.builder()
+                .questionId(System.nanoTime())
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .questionText(text)
+                .questionType("MCQ")
+                .taxonomy(TaxonomyDocument.builder()
+                        .categories(categories)
+                        .tags(tags)
+                        .quizzes(quizzes)
+                        .build())
                 .createdAt(timestamp)
                 .updatedAt(timestamp)
                 .build();
