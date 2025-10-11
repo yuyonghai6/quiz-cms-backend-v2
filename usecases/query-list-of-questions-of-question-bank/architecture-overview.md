@@ -395,7 +395,7 @@ public class QueryQuestionsIntegrationTest {
 
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0")
-            .withExposedPorts(27018)  // Simulate secondary instance
+            .withExposedPorts(27017)  // Simulate secondary instance
             .withReuse(false);
 
     @DynamicPropertySource
