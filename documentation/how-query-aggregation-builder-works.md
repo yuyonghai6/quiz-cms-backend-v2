@@ -21,17 +21,20 @@ The builder encapsulates construction of the MongoDB aggregation pipeline for qu
   - `tags` (List<String>): OR semantics using `$in` against `taxonomy.tags`
   - `quizzes` (List<String>): OR semantics using `$in` against `taxonomy.quizzes`
 - Optional search filter:
-  - `searchText` (String): case-insensitive substring match on `question_text` implemented with a regex (Pattern.CASE_INSENSITIVE)
+  - `searchText` (String):
+    - By default, case-insensitive substring match on `question_text` using regex.
+    - When `sortBy = relevance`, repository switches to MongoDB full-text search using `TextQuery` and sorts by score.
 
 Notes:
 - When an optional filter is null or empty, it is not included in the `$match` criteria.
 - Search is implemented as a regex over `question_text` for now; we can migrate to MongoDB `$text` search when a text index and weights are introduced.
 
 ## Sorting
-Supported sort fields are validated in `QueryQuestionsRequest` and mapped to snake_case fields:
+ Supported sort fields are validated in `QueryQuestionsRequest` and mapped to snake_case fields:
 - `createdAt` → `created_at`
 - `updatedAt` → `updated_at`
 - `questionText` → `question_text`
+  - `relevance` → Uses MongoDB text score ordering (requires a text index on `question_text`)
 
 Sort direction accepts `asc` or `desc`.
 
@@ -71,6 +74,7 @@ The builder will produce an aggregation pipeline equivalent to:
   - `MongoQuestionQueryRepositoryIntegrationTest` verifies filtering (AND/OR), search, pagination, sorting, count, and field mapping.
 - Unit tests (builder-focused):
   - `QuestionQueryAggregationBuilderTest` verifies criteria construction, sort mapping, and pagination math.
+  - Full-text behavior is covered via integration tests that create a text index at runtime for the test container.
 
 ## When to extend
 - Add new filter fields to `QueryQuestionsRequest` and update `QuestionQueryAggregationBuilder.buildMatchCriteria` accordingly.

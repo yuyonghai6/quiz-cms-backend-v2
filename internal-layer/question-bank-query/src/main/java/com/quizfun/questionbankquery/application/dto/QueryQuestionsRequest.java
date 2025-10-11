@@ -36,8 +36,8 @@ public class QueryQuestionsRequest {
     @Builder.Default
     private final Integer size = 20;
 
-    @Pattern(regexp = "^(createdAt|updatedAt|questionText)$",
-            message = "Sort by must be one of: createdAt, updatedAt, questionText")
+    @Pattern(regexp = "^(createdAt|updatedAt|questionText|relevance)$",
+        message = "Sort by must be one of: createdAt, updatedAt, questionText, relevance")
     @Builder.Default
     private final String sortBy = "createdAt";
 

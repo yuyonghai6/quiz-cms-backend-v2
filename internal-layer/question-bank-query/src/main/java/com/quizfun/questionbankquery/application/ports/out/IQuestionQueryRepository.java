@@ -19,4 +19,14 @@ public interface IQuestionQueryRepository {
      * Counts total number of questions for pagination metadata.
      */
     long countQuestions(Long userId, Long questionBankId);
+
+    /**
+     * Counts questions matching the given filters (including text search).
+     *
+     * @param userId user ID
+     * @param questionBankId question bank ID
+     * @param request request containing filters to apply
+     * @return count of matching questions
+     */
+    long countQuestions(Long userId, Long questionBankId, QueryQuestionsRequest request);
 }

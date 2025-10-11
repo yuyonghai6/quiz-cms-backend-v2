@@ -65,6 +65,60 @@ class MongoQuestionQueryRepositoryIntegrationTest {
     }
 
     @Test
+    @DisplayName("Full-text search should rank by relevance when sortBy=relevance")
+    void fullTextSearchRanksByRelevance() {
+        // Ensure text index exists for question_text
+        mongoTemplate.getDb().getCollection(COLLECTION_NAME)
+                .createIndex(new org.bson.Document("question_text", "text"));
+
+        Instant now = Instant.now();
+        insertQuestionWithTimestamp("Paris is the capital of France", now);
+        insertQuestionWithTimestamp("The capital city is Paris", now);
+        insertQuestionWithTimestamp("Random unrelated text", now);
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .searchText("capital Paris")
+                .sortBy("relevance")
+                .sortDirection("desc") // ignored for relevance path
+                .page(0)
+                .size(10)
+                .build();
+
+        List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
+        assertThat(results).hasSize(2);
+        // Both relevant docs should come first; order between them depends on Mongo scoring
+        assertThat(results.get(0).questionText().toLowerCase()).contains("capital");
+        assertThat(results.get(0).questionText().toLowerCase()).contains("paris");
+    }
+
+    @Test
+    @DisplayName("Full-text count should respect taxonomy and text filters")
+    void fullTextCountRespectsFilters() {
+        mongoTemplate.getDb().getCollection(COLLECTION_NAME)
+                .createIndex(new org.bson.Document("question_text", "text"));
+
+        Instant now = Instant.now();
+        insertQuestion("Apple computer history", now, List.of("tech"), List.of("tag1"), List.of("quiz1"));
+        insertQuestion("Apple pie recipe", now, List.of("cooking"), List.of("tag2"), List.of("quiz2"));
+        insertQuestion("Banana smoothie recipe", now, List.of("cooking"), List.of("tag2"), List.of("quiz2"));
+
+        QueryQuestionsRequest request = QueryQuestionsRequest.builder()
+                .userId(TEST_USER_ID)
+                .questionBankId(TEST_QUESTION_BANK_ID)
+                .searchText("apple recipe")
+                .tags(List.of("tag2")) // OR matches pie and smoothie, but smoothie lacks apple keyword
+                .sortBy("relevance")
+                .page(0)
+                .size(10)
+                .build();
+
+        long count = questionQueryRepository.countQuestions(TEST_USER_ID, TEST_QUESTION_BANK_ID, request);
+        assertThat(count).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("Should query questions by userId and questionBankId")
     void shouldQueryQuestionsByUserIdAndQuestionBankId() {
         insertTestQuestions(5);

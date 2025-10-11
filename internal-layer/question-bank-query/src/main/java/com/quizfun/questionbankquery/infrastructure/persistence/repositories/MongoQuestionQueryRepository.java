@@ -10,6 +10,7 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.TextQuery;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -29,11 +30,26 @@ public class MongoQuestionQueryRepository implements IQuestionQueryRepository {
 
     @Override
     public List<QuestionDTO> queryQuestions(QueryQuestionsRequest request) {
-    Aggregation aggregation = aggregationBuilder.buildAggregation(request);
-    List<QuestionDocument> docs = mongoTemplate
-        .aggregate(aggregation, COLLECTION, QuestionDocument.class)
-        .getMappedResults();
-    return docs.stream().map(mapper::toDTO).toList();
+        // When searchText present and relevance sorting requested, prefer TextQuery
+        boolean wantsText = request.getSearchText() != null && !request.getSearchText().isBlank();
+        boolean sortByRelevance = "relevance".equalsIgnoreCase(request.getSortBy());
+        if (wantsText && sortByRelevance) {
+            Query textQuery = aggregationBuilder.buildTextQuery(request);
+            // Relevance sort: TextQuery has .sortByScore(); also apply skip/limit
+            if (textQuery instanceof TextQuery tq) {
+                tq.sortByScore();
+            }
+            textQuery.skip((long) request.getPage() * request.getSize());
+            textQuery.limit(request.getSize());
+            List<QuestionDocument> docs = mongoTemplate.find(textQuery, QuestionDocument.class, COLLECTION);
+            return docs.stream().map(mapper::toDTO).toList();
+        }
+
+        Aggregation aggregation = aggregationBuilder.buildAggregation(request);
+        List<QuestionDocument> docs = mongoTemplate
+                .aggregate(aggregation, COLLECTION, QuestionDocument.class)
+                .getMappedResults();
+        return docs.stream().map(mapper::toDTO).toList();
     }
 
     @Override
@@ -42,5 +58,17 @@ public class MongoQuestionQueryRepository implements IQuestionQueryRepository {
         return mongoTemplate.count(query, QuestionDocument.class, COLLECTION);
     }
 
+    @Override
+    public long countQuestions(Long userId, Long questionBankId, QueryQuestionsRequest request) {
+        // Use base criteria (without regex) alongside TextQuery when searchText provided
+        if (request.getSearchText() != null && !request.getSearchText().isBlank()) {
+            Query textQuery = aggregationBuilder.buildTextQuery(request);
+            return mongoTemplate.count(textQuery, QuestionDocument.class, COLLECTION);
+        }
+
+        Criteria criteria = aggregationBuilder.buildMatchCriteriaWithoutText(request);
+        Query query = new Query(criteria);
+        return mongoTemplate.count(query, QuestionDocument.class, COLLECTION);
+    }
 
 }
