@@ -38,7 +38,8 @@
       "Bash(k6 run:*)",
       "Read(//tmp/**)",
       "Bash(pkill:*)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(xargs -r kill -9)"
     ]
   },
   "outputStyle": "Learning"

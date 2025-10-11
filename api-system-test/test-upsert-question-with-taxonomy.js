@@ -1,5 +1,6 @@
 import { check, group } from 'k6';
 import http from 'k6/http';
+import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/latest/dist/bundle.js';
 
 export const options = {
   vus: 1,
@@ -940,4 +941,22 @@ export default function () {
       console.log('Response Body:', res.body);
     }
   });
+}
+
+// Export handleSummary function for HTML report generation
+export function handleSummary(data) {
+  // Extract script name without extension
+  const scriptPath = __ENV.K6_SCRIPT_PATH || 'test-upsert-question-with-taxonomy.js';
+  const scriptName = scriptPath.split('/').pop().replace('.js', '');
+
+  // Define report directory path
+  const reportDir = `api-system-test/reports/${scriptName}`;
+
+  return {
+    [`${reportDir}/summary-report.html`]: htmlReport(data, {
+      title: 'Upsert Question with Taxonomy - API System Test'
+    }),
+    [`${reportDir}/summary-data.json`]: JSON.stringify(data, null, 2),
+    stdout: '', // Suppress default stdout summary
+  };
 }

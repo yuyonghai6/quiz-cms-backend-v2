@@ -282,6 +282,188 @@ curl http://localhost:8765/actuator/health
 
 ---
 
-**Document Version**: 1.0
+## HTML Report Generation
+
+### Overview
+
+The k6 test suite now generates visual HTML reports alongside JSON data for enhanced test result analysis and sharing.
+
+### Generated Files
+
+After running tests, two files are created in the project root:
+
+1. **`summary-report.html`** (42KB)
+   - Visual dashboard with charts and metrics
+   - All 42 checks with pass/fail indicators
+   - HTTP response time statistics (min, max, avg, p90, p95)
+   - Performance timeline graphs
+   - Suitable for sharing with stakeholders
+
+2. **`summary-data.json`** (20KB)
+   - Raw test data in JSON format
+   - Complete metrics and check results
+   - CI/CD integration-ready
+   - Historical trend analysis
+
+### Common Issues and Solutions
+
+#### Issue 1: CDN Timeout - k6-reporter Not Loading
+
+**Symptoms:**
+- Test runs but no HTML report generated
+- Error: "Failed to fetch k6-reporter from CDN"
+- Only JSON file is created
+
+**Root Cause:**
+The test file imports `k6-reporter` from GitHub CDN. Network issues or CDN unavailability can prevent the library from loading.
+
+**Solution 1: Retry Test Execution**
+```bash
+# CDN may be temporarily unavailable, wait and retry
+sleep 5 && k6 run api-system-test/test-upsert-question-with-taxonomy.js
+```
+
+**Solution 2: Download Library Locally (Permanent Fix)**
+```bash
+# Create library directory
+mkdir -p api-system-test/lib
+
+# Download bundle.js
+curl -o api-system-test/lib/k6-reporter-bundle.js \
+  https://raw.githubusercontent.com/benc-uk/k6-reporter/latest/dist/bundle.js
+
+# Update import in test file (change line 3)
+# FROM: import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/latest/dist/bundle.js';
+# TO:   import { htmlReport } from './lib/k6-reporter-bundle.js';
+```
+
+#### Issue 2: Reports Not Opening in Browser
+
+**Symptoms:**
+- HTML file generated successfully
+- Browser shows blank page or errors
+
+**Root Cause:**
+Browser security policies may block local file resources or JavaScript execution.
+
+**Solution:**
+```bash
+# Try different browsers
+open -a "Google Chrome" summary-report.html  # macOS
+open -a Firefox summary-report.html           # macOS
+xdg-open summary-report.html                  # Linux
+
+# Or start a simple HTTP server
+python3 -m http.server 8000
+# Then open: http://localhost:8000/summary-report.html
+```
+
+#### Issue 3: Report Shows Unexpected Failures
+
+**Symptoms:**
+- HTML report generated successfully
+- Shows failures that don't appear in console output
+
+**Root Cause:**
+The HTML report accurately reflects all k6 checks. Console output may be truncated or filtered.
+
+**Solution:**
+```bash
+# View detailed check results in JSON
+cat summary-data.json | jq '.metrics.checks'
+
+# Compare with HTML report checks section
+# The HTML report groups checks by test scenario
+# Navigate to "Checks & Groups" section to see failures
+```
+
+### Using Reports for Debugging
+
+#### 1. Identify Failing Checks Quickly
+
+Open `summary-report.html` and navigate to the "Checks & Groups" section:
+- ✅ Green checkmarks: Passing checks
+- ❌ Red X's: Failing checks
+- Hierarchical view shows test groups and individual checks
+
+#### 2. Analyze Performance Metrics
+
+**HTTP Request Duration:**
+- **Min/Max**: Identify outliers
+- **Avg**: Baseline performance
+- **p90/p95**: 90th and 95th percentile response times (critical for SLAs)
+
+**Example Interpretation:**
+```
+http_req_duration:
+  min: 15ms
+  max: 250ms
+  avg: 45ms
+  p90: 85ms   ← 90% of requests completed in 85ms or less
+  p95: 120ms  ← 95% of requests completed in 120ms or less
+```
+
+If p95 > 200ms, investigate:
+- Database query performance
+- Network latency
+- Application logic bottlenecks
+
+#### 3. Compare Across Test Runs
+
+**Track Performance Trends:**
+```bash
+# Save timestamped reports for comparison
+cp summary-report.html reports/report-$(date +%Y%m%d-%H%M%S).html
+cp summary-data.json reports/data-$(date +%Y%m%d-%H%M%S).json
+
+# Compare metrics between runs
+jq '.metrics.http_req_duration.values.avg' reports/data-20251011-120437.json
+jq '.metrics.http_req_duration.values.avg' reports/data-20251011-150822.json
+```
+
+#### 4. Share Results with Team
+
+**For Non-Technical Stakeholders:**
+- Share `summary-report.html` directly
+- No k6 or technical knowledge required
+- Visual charts and clear pass/fail indicators
+
+**For Technical Team:**
+- Share both HTML and JSON files
+- JSON enables custom analysis and CI/CD integration
+- HTML provides quick visual overview
+
+### Report Storage Best Practices
+
+**Local Development:**
+- Reports are gitignored (not committed to repository)
+- Keep only recent reports (last 5-10 runs)
+- Delete old reports periodically:
+  ```bash
+  ls -t reports/report-*.html | tail -n +11 | xargs rm
+  ```
+
+**CI/CD Integration:**
+- Archive reports as build artifacts
+- Track performance metrics over time
+- Set up automated alerts for threshold violations
+
+### Performance Baselines
+
+**Recommended Response Time Targets:**
+- **p95 < 500ms**: Acceptable for API endpoints
+- **p99 < 1000ms**: Maximum acceptable latency
+- **avg < 200ms**: Good baseline performance
+
+If metrics exceed these baselines, investigate:
+1. Database indexing issues
+2. N+1 query problems
+3. Inefficient validation logic
+4. Network/DNS resolution delays
+
+---
+
+**Document Version**: 1.1
 **Last Updated**: 2025-10-11
 **Test Success Rate**: 100% (42/42 checks passing)
+**HTML Report Support**: Added 2025-10-11
