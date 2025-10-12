@@ -1,53 +1,3 @@
-# User Story 1018: End-to-End Integration Tests (RestTemplate + Testcontainers)
-
-## User Story
-
-**As a** QA engineer
-**I want** comprehensive end-to-end integration tests for the query questions API using RestTemplate and Testcontainers
-**So that** I can ensure the entire system works correctly from HTTP request to database query in an isolated test environment
-
-## Acceptance Criteria
-
-- [ ] E2E test verifies complete flow from HTTP request to database query
-- [ ] E2E test covers all major scenarios (basic query, filters, search, pagination)
-- [ ] E2E test uses TestRestTemplate with real Spring Boot context
-- [ ] E2E test uses Testcontainers for isolated MongoDB
-- [ ] Allure annotations correctly applied
-- [ ] Text index created for MongoDB text search functionality (in the test lifecycle)
-- [ ] This user story excludes K6; K6 has been moved to 1019/1020
-
-## Related User Stories
-
-- 1019: K6 Functional API System Tests (with real MongoDB replica set)
-- 1020: K6 Performance Tests (load testing with real infrastructure)
-
-Note: K6 content previously drafted here has been moved to the dedicated WBS files above. This file is kept strictly for RestTemplate-based E2E tests backed by Testcontainers MongoDB.
-
----
-
-## TDD Cycle
-
-### Allure Annotations Format
-
-```java
-@Epic("Use Case Query List of Questions of Question Bank")
-@Story("1018.end-to-end-integration-tests")
-```
-
----
-
-## Phase 1: RED (Write Failing Tests)
-
-### Objective
-Write failing E2E tests that verify the complete system.
-
-### Tasks
-
-#### Task 1.1: Create Comprehensive E2E Test
-
-**File**: `orchestration-layer/src/test/java/com/quizfun/orchestrationlayer/e2e/QueryQuestionsE2ETest.java`
-
-```java
 package com.quizfun.orchestrationlayer.e2e;
 
 import com.quizfun.questionbankquery.infrastructure.persistence.documents.QuestionDocument;
@@ -63,13 +13,16 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import com.mongodb.client.model.Indexes;
 
 import java.time.Instant;
 import java.util.List;
@@ -81,13 +34,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Story("1018.end-to-end-integration-tests")
 @Testcontainers
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@DisplayName("Query Questions End-to-End Tests")
+@DisplayName("Query Questions End-to-End Tests (RestTemplate + Testcontainers)")
 class QueryQuestionsE2ETest {
 
     @Container
-    static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0")
-            .withExposedPorts(27017)
-            .withReuse(false);
+    @SuppressWarnings("resource")
+    static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0");
 
     @DynamicPropertySource
     static void mongoProperties(DynamicPropertyRegistry registry) {
@@ -117,6 +69,11 @@ class QueryQuestionsE2ETest {
 
         mongoTemplate.dropCollection(COLLECTION_NAME);
         mongoTemplate.createCollection(COLLECTION_NAME);
+
+    // Ensure text index on question_text for full-text search paths (driver-level to avoid deprecations)
+    String collection = mongoTemplate.getCollectionName(QuestionDocument.class);
+    mongoTemplate.getDb().getCollection(collection).createIndex(Indexes.text("question_text"));
+
         insertTestQuestions();
     }
 
@@ -128,22 +85,23 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should query questions with basic pagination")
     void shouldQueryQuestionsWithBasicPagination() {
-        // WHEN: Making HTTP GET request
         String url = baseUrl + "?page=0&size=10";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should return 200 OK
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
 
-        // AND: Should have questions
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).hasSize(10);
 
-        // AND: Should have pagination metadata
-        @SuppressWarnings("unchecked")
-        Map<String, Object> pagination = (Map<String, Object>) response.getBody().get("pagination");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> pagination = (Map<String, Object>) response.getBody().get("pagination");
         assertThat(pagination.get("currentPage")).isEqualTo(0);
         assertThat(pagination.get("pageSize")).isEqualTo(10);
         assertThat(pagination.get("totalItems")).isEqualTo(50);
@@ -153,20 +111,21 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should query questions with category filter")
     void shouldQueryQuestionsWithCategoryFilter() {
-        // WHEN: Filtering by category
         String url = baseUrl + "?categories=Math&page=0&size=20";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should return filtered results
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).hasSize(20);
 
-        // Verify first question has Math category
-        @SuppressWarnings("unchecked")
-        Map<String, Object> firstQuestion = questions.get(0);
+    Map<String, Object> firstQuestion = questions.get(0);
         @SuppressWarnings("unchecked")
         Map<String, Object> taxonomy = (Map<String, Object>) firstQuestion.get("taxonomy");
         @SuppressWarnings("unchecked")
@@ -177,18 +136,20 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should query questions with text search")
     void shouldQueryQuestionsWithTextSearch() {
-        // WHEN: Searching by text
         String url = baseUrl + "?searchText=equation&page=0&size=10";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should return matching results
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).isNotEmpty();
 
-        // Verify question text contains search term
         String questionText = (String) questions.get(0).get("questionText");
         assertThat(questionText.toLowerCase()).contains("equation");
     }
@@ -196,42 +157,42 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should query questions with combined filters")
     void shouldQueryQuestionsWithCombinedFilters() {
-        // WHEN: Combining multiple filters
         String url = baseUrl + "?categories=Math&tags=algebra&searchText=equation&page=0&size=10";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should return results matching all filters
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).isNotEmpty();
     }
 
     @Test
     @DisplayName("E2E: Should handle pagination across multiple pages")
     void shouldHandlePaginationAcrossMultiplePages() {
-        // WHEN: Querying multiple pages
         String url1 = baseUrl + "?page=0&size=10";
         String url2 = baseUrl + "?page=1&size=10";
-        String url3 = baseUrl + "?page=4&size=10";
+    String url3 = baseUrl + "?page=5&size=10"; // beyond total pages (0..4)
 
-        ResponseEntity<Map> response1 = restTemplate.getForEntity(url1, Map.class);
-        ResponseEntity<Map> response2 = restTemplate.getForEntity(url2, Map.class);
-        ResponseEntity<Map> response3 = restTemplate.getForEntity(url3, Map.class);
+    ResponseEntity<Map<String, Object>> response1 = restTemplate.exchange(url1, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, Object>>() {});
+    ResponseEntity<Map<String, Object>> response2 = restTemplate.exchange(url2, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, Object>>() {});
+    ResponseEntity<Map<String, Object>> response3 = restTemplate.exchange(url3, HttpMethod.GET, null, new ParameterizedTypeReference<Map<String, Object>>() {});
 
-        // THEN: All pages should return successfully
         assertThat(response1.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response2.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response3.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        // AND: Pages should have correct sizes
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> page1 = (List<Map<String, Object>>) response1.getBody().get("questions");
+    List<Map<String, Object>> page1 = (List<Map<String, Object>>) response1.getBody().get("questions");
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> page2 = (List<Map<String, Object>>) response2.getBody().get("questions");
+    List<Map<String, Object>> page2 = (List<Map<String, Object>>) response2.getBody().get("questions");
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> page3 = (List<Map<String, Object>>) response3.getBody().get("questions");
+    List<Map<String, Object>> page3 = (List<Map<String, Object>>) response3.getBody().get("questions");
 
         assertThat(page1).hasSize(10);
         assertThat(page2).hasSize(10);
@@ -241,16 +202,18 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should return empty list for non-existent user")
     void shouldReturnEmptyListForNonExistentUser() {
-        // WHEN: Querying with non-existent user
-        String url = "http://localhost:" + port + "/api/v1/users/99999/question-banks/"
-                + TEST_QUESTION_BANK_ID + "/questions?page=0&size=10";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+        String url = "http://localhost:" + port + "/api/v1/users/99999/question-banks/" + TEST_QUESTION_BANK_ID + "/questions?page=0&size=10";
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should return 200 OK with empty list
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
-        List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).isEmpty();
 
         @SuppressWarnings("unchecked")
@@ -261,24 +224,24 @@ class QueryQuestionsE2ETest {
     @Test
     @DisplayName("E2E: Should return 400 for invalid page number")
     void shouldReturn400ForInvalidPageNumber() {
-        // WHEN: Using invalid page number
         String url = baseUrl + "?page=-1&size=10";
         ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
-
-        // THEN: Should return 400 BAD REQUEST
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
     @DisplayName("E2E: Should verify complete response structure")
     void shouldVerifyCompleteResponseStructure() {
-        // WHEN: Making request
         String url = baseUrl + "?page=0&size=1";
-        ResponseEntity<Map> response = restTemplate.getForEntity(url, Map.class);
+    ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+        url,
+        HttpMethod.GET,
+        null,
+        new ParameterizedTypeReference<Map<String, Object>>() {}
+    );
 
-        // THEN: Should have complete structure
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Map<String, Object> body = response.getBody();
+    Map<String, Object> body = response.getBody();
         assertThat(body).containsKeys("questions", "pagination");
 
         @SuppressWarnings("unchecked")
@@ -329,32 +292,3 @@ class QueryQuestionsE2ETest {
         }
     }
 }
-```
-
-#### Task 1.2: Run E2E Tests (Should PASS if previous user stories complete)
-
-```bash
-mvn clean test -pl orchestration-layer -Dtest=QueryQuestionsE2ETest
-```
-
-**Expected Result**: All 8 E2E tests should PASS (system is already implemented).
-
----
-
-## Definition of Done
-
-- [ ] E2E tests created and passing (8 tests)
-- [ ] E2E tests cover major scenarios
-- [ ] Tests wired with Testcontainers MongoDB
-- [ ] Allure report annotations present
-- [ ] JaCoCo coverage maintained (tracked at module level)
-
-## Notes
-
-- K6 functional and performance testing are documented separately:
-  - See 1019.k6-functional-api-system-test.md
-  - See 1020.k6-performance-test.md
-
-## Summary
-
-This user story focuses purely on RestTemplate-based E2E tests backed by Testcontainers MongoDB. K6-based testing has been split into dedicated work items to keep responsibilities clear and environments separate.
