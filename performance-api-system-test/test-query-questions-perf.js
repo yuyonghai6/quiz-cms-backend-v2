@@ -14,8 +14,21 @@ import { check, sleep } from 'k6';
 import { Rate, Trend } from 'k6/metrics';
 import { htmlReport } from 'https://raw.githubusercontent.com/benc-uk/k6-reporter/latest/dist/bundle.js';
 
+// Global aggregate metrics
 export const errorRate = new Rate('errors');
 export const queryDuration = new Trend('query_duration');
+
+// Per-scenario trends (these show as separate charts in the HTML report)
+export const duration_basic_query = new Trend('duration_basic_query');
+export const duration_category_filter = new Trend('duration_category_filter');
+export const duration_text_search = new Trend('duration_text_search');
+export const duration_combined_filters = new Trend('duration_combined_filters');
+
+// Optional: deeper timing breakdown per scenario
+export const waiting_basic_query = new Trend('waiting_basic_query');
+export const waiting_category_filter = new Trend('waiting_category_filter');
+export const waiting_text_search = new Trend('waiting_text_search');
+export const waiting_combined_filters = new Trend('waiting_combined_filters');
 
 export const options = {
   stages: [
@@ -51,6 +64,26 @@ function scenario(name, qs) {
   });
   errorRate.add(!ok);
   queryDuration.add(res.timings.duration);
+
+  // Route timings into per-scenario trends for richer charts
+  switch (name) {
+    case 'basic_query':
+      duration_basic_query.add(res.timings.duration);
+      waiting_basic_query.add(res.timings.waiting);
+      break;
+    case 'category_filter':
+      duration_category_filter.add(res.timings.duration);
+      waiting_category_filter.add(res.timings.waiting);
+      break;
+    case 'text_search':
+      duration_text_search.add(res.timings.duration);
+      waiting_text_search.add(res.timings.waiting);
+      break;
+    case 'combined_filters':
+      duration_combined_filters.add(res.timings.duration);
+      waiting_combined_filters.add(res.timings.waiting);
+      break;
+  }
 }
 
 export function handleSummary(data) {
