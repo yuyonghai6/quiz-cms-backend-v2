@@ -43,6 +43,13 @@
             <version>${project.version}</version>
         </dependency>
 
+        <!-- Question bank query module (direct dependency for query handlers) -->
+        <dependency>
+            <groupId>com.quizfun</groupId>
+            <artifactId>question-bank-query</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <!-- Shared module for Result types -->
         <dependency>
             <groupId>com.quizfun</groupId>
@@ -102,6 +109,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
             <scope>test</scope>
         </dependency>
 
