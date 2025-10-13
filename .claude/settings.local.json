@@ -42,7 +42,8 @@
       "Bash(xargs -r kill -9)",
       "Read(//home/joyfulday/mongodb-replica/**)",
       "Bash(source .env)",
-      "Bash(docker exec:*)"
+      "Bash(docker exec:*)",
+      "Bash(python3:*)"
     ]
   },
   "outputStyle": "Learning"
