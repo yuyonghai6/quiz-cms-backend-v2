@@ -414,19 +414,38 @@ export default function () {
     }
   });
 
+  // ============================================================================
+  // UNHAPPY PATH TESTS
+  // ============================================================================
 
-
-  group('Happy Path - Create New MCQ Question (Full Taxonomy)', () => {
-    const uniqueSourceId = generateUUIDv7();
-    const payload = createFullMCQPayload(uniqueSourceId);
+  group('Unhappy Path - Missing Required Field (source_question_id)', () => {
+    const payload = JSON.stringify({
+      // Missing source_question_id
+      question_type: 'mcq',
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      taxonomy: {
+        categories: {
+          level_1: { id: 'general', name: 'General', slug: 'general', parent_id: null }
+        },
+        difficulty_level: { level: 'easy', numeric_value: 1, description: 'Easy' }
+      },
+      mcq_data: {
+        options: [
+          { id: 1, text: 'A', is_correct: true },
+          { id: 2, text: 'B', is_correct: false }
+        ],
+        shuffle_options: false,
+        allow_multiple_correct: false
+      }
+    });
 
     const params = {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' }
     };
 
-    console.log(`\n📝 Testing Happy Path - Create Full MCQ with UUID: ${uniqueSourceId}`);
+    console.log('\n📝 Testing Unhappy Path: Missing source_question_id');
     const res = http.post(
       `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
       payload,
@@ -434,26 +453,10 @@ export default function () {
     );
 
     const checks = check(res, {
-      '✓ status is 200 OK': (r) => r.status === 200,
-      '✓ success is true': (r) => {
+      '✓ status is 400': (r) => r.status === 400,
+      '✓ success is false': (r) => {
         try {
-          return r.json().success === true;
-        } catch (e) {
-          return false;
-        }
-      },
-      '✓ operation is created': (r) => {
-        try {
-          return r.json().data.operation === 'created';
-        } catch (e) {
-          return false;
-        }
-      },
-      '✓ taxonomy relationships count > 0': (r) => {
-        try {
-          const data = r.json().data;
-          const count = data.taxonomy_relationships_count || data.taxonomyRelationshipsCount;
-          return count > 0;
+          return r.json().success === false;
         } catch (e) {
           return false;
         }
@@ -461,23 +464,351 @@ export default function () {
     });
 
     if (checks) {
-      console.log('✅ Happy Path (Full MCQ): ALL CHECKS PASSED');
-      try {
-        const body = res.json();
-        const data = body.data;
-        console.log(`   Taxonomy relationships: ${data.taxonomy_relationships_count || data.taxonomyRelationshipsCount}`);
-      } catch (e) {
-        // Silent fail
-      }
+      console.log('✅ Unhappy Path (Missing field): Correctly rejected');
     } else {
-      console.log('❌ Happy Path (Full MCQ): SOME CHECKS FAILED');
+      console.log('❌ Unhappy Path (Missing field): Unexpected response');
       console.log('Response Status:', res.status);
       console.log('Response Body:', res.body);
     }
   });
-  // ============================================================================
-  // UNHAPPY PATH TESTS
-  // ============================================================================
+
+  group('Unhappy Path - Invalid Question Type', () => {
+    const uniqueSourceId = generateUUIDv7();
+
+    const payload = JSON.stringify({
+      source_question_id: uniqueSourceId,
+      question_type: 'invalid_type', // Invalid type
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      taxonomy: {
+        categories: {
+          level_1: { id: 'general', name: 'General', slug: 'general', parent_id: null }
+        },
+        difficulty_level: { level: 'easy', numeric_value: 1, description: 'Easy' }
+      },
+      mcq_data: {
+        options: [
+          { id: 1, text: 'A', is_correct: true },
+          { id: 2, text: 'B', is_correct: false }
+        ],
+        shuffle_options: false,
+        allow_multiple_correct: false
+      }
+    });
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Invalid question type');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 400': (r) => r.status === 400,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Invalid type): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Invalid type): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Type Data Mismatch (MCQ type with essay_data)', () => {
+    const uniqueSourceId = generateUUIDv7();
+
+    const payload = JSON.stringify({
+      source_question_id: uniqueSourceId,
+      question_type: 'mcq', // Says MCQ
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      taxonomy: {
+        categories: {
+          level_1: { id: 'general', name: 'General', slug: 'general', parent_id: null }
+        },
+        difficulty_level: { level: 'easy', numeric_value: 1, description: 'Easy' }
+      },
+      // But provides essay_data instead of mcq_data
+      essay_data: {
+        prompt: 'Write an essay',
+        min_words: 100,
+        max_words: 500
+      }
+    });
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Type data mismatch');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 400': (r) => r.status === 400,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Type mismatch): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Type mismatch): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Missing MCQ Data', () => {
+    const uniqueSourceId = generateUUIDv7();
+
+    const payload = JSON.stringify({
+      source_question_id: uniqueSourceId,
+      question_type: 'mcq',
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      taxonomy: {
+        categories: {
+          level_1: { id: 'general', name: 'General', slug: 'general', parent_id: null }
+        },
+        difficulty_level: { level: 'easy', numeric_value: 1, description: 'Easy' }
+      }
+      // Missing mcq_data
+    });
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Missing MCQ data');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 400': (r) => r.status === 400,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Missing MCQ data): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Missing MCQ data): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Invalid Question Bank (Non-existent)', () => {
+    const uniqueSourceId = generateUUIDv7();
+    const invalidQuestionBankId = 9999999999999;
+
+    const payload = createMinimalMCQPayload(uniqueSourceId);
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Invalid question bank');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${invalidQuestionBankId}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 422': (r) => r.status === 422,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Invalid bank): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Invalid bank): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Invalid Taxonomy Reference', () => {
+    const uniqueSourceId = generateUUIDv7();
+
+    const payload = JSON.stringify({
+      source_question_id: uniqueSourceId,
+      question_type: 'mcq',
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      taxonomy: {
+        categories: {
+          level_1: {
+            id: 'nonexistent-category', // This doesn't exist
+            name: 'Nonexistent',
+            slug: 'nonexistent',
+            parent_id: null
+          }
+        },
+        difficulty_level: { level: 'easy', numeric_value: 1, description: 'Easy' }
+      },
+      mcq_data: {
+        options: [
+          { id: 1, text: 'A', is_correct: true },
+          { id: 2, text: 'B', is_correct: false }
+        ],
+        shuffle_options: false,
+        allow_multiple_correct: false
+      }
+    });
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Invalid taxonomy reference');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 422': (r) => r.status === 422,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Invalid taxonomy): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Invalid taxonomy): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Missing Taxonomy', () => {
+    const uniqueSourceId = generateUUIDv7();
+
+    const payload = JSON.stringify({
+      source_question_id: uniqueSourceId,
+      question_type: 'mcq',
+      title: 'Test Question',
+      content: '<p>Test</p>',
+      status: 'draft',
+      // Missing taxonomy
+      mcq_data: {
+        options: [
+          { id: 1, text: 'A', is_correct: true },
+          { id: 2, text: 'B', is_correct: false }
+        ],
+        shuffle_options: false,
+        allow_multiple_correct: false
+      }
+    });
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Missing taxonomy');
+    const res = http.post(
+      `${BASE_URL}/api/users/${TEST_USER_ID}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 400': (r) => r.status === 400,
+      '✓ success is false': (r) => {
+        try {
+          return r.json().success === false;
+        } catch (e) {
+          return false;
+        }
+      },
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Missing taxonomy): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Missing taxonomy): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
+
+  group('Unhappy Path - Invalid Path Parameters', () => {
+    const uniqueSourceId = generateUUIDv7();
+    const invalidUserId = -1; // Negative userId
+
+    const payload = createMinimalMCQPayload(uniqueSourceId);
+
+    const params = {
+      headers: { 'Content-Type': 'application/json' }
+    };
+
+    console.log('\n📝 Testing Unhappy Path: Invalid path parameters (negative userId)');
+    const res = http.post(
+      `${BASE_URL}/api/users/${invalidUserId}/questionbanks/${TEST_QUESTION_BANK_ID}/questions`,
+      payload,
+      params
+    );
+
+    const checks = check(res, {
+      '✓ status is 400': (r) => r.status === 400,
+    });
+
+    if (checks) {
+      console.log('✅ Unhappy Path (Invalid params): Correctly rejected');
+    } else {
+      console.log('❌ Unhappy Path (Invalid params): Unexpected response');
+      console.log('Response Status:', res.status);
+      console.log('Response Body:', res.body);
+    }
+  });
 }
 
 // Export handleSummary function for HTML report generation

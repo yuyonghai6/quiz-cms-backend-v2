@@ -52,6 +52,9 @@ public class UpsertQuestionCommandHandler implements ICommandHandler<UpsertQuest
 
         try {
             // Delegate to application service which contains all business logic
+            logger.warn("command obj in UpsertQuestionCommandHandler: {}", command.toString());
+            logger.warn("command solution explaination in UpsertQuestionCommandHandler: {}", command.getSolutionExplanation());
+            logger.warn("command display order in UpsertQuestionCommandHandler: {}", command.getDisplayOrder());
             var applicationServiceResult = questionApplicationService.upsertQuestion(command);
 
             // Convert from internal Result type to mediator Result type
