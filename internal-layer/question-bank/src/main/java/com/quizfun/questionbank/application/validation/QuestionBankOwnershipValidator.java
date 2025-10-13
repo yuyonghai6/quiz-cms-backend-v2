@@ -57,6 +57,8 @@ public class QuestionBankOwnershipValidator extends ValidationHandler {
 
         try {
             // Validate ownership with retry mechanism for temporary failures
+            logger.warn("upsertcommand get user id: {}", upsertCommand.getUserId());
+            logger.warn("upsertcommand get question bank id: {}", upsertCommand.getQuestionBankId());
             Result<Boolean> ownershipResult = retryHelper.executeWithRetry(
                 () -> questionBanksPerUserRepository.validateOwnership(
                     upsertCommand.getUserId(),

@@ -64,8 +64,10 @@ public class TestContainersConfig {
     @SuppressWarnings("resource")
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0")
-            .withExposedPorts(27017)
-            .withReuse(false);
+        // Do NOT override exposed ports; MongoDB listens on 27017 internally.
+        // Testcontainers will map it to a random available host port and
+        // getReplicaSetUrl() will point Spring to the correct host:port.
+        .withReuse(false);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
