@@ -56,8 +56,12 @@ public class TrueFalseQuestionStrategy implements QuestionTypeStrategy {
             // Set True/False-specific data
             questionAggregate.setTrueFalseData(command.getTrueFalseData());
 
-            // Note: Additional properties like solutionExplanation, status, etc.
-            // are set during aggregate creation or through separate update methods
+            // Apply optional metadata after type-specific data is set
+            questionAggregate.updateStatusAndMetadata(
+                command.getStatus(),
+                command.getDisplayOrder(),
+                command.getSolutionExplanation()
+            );
 
             logger.debug("Successfully processed True/False question data for source ID: {}",
                         command.getSourceQuestionId());

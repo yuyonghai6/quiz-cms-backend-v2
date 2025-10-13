@@ -137,11 +137,11 @@ class QueryQuestionsServiceIntegrationTest {
     private void insertTestQuestions(int count) {
         Instant now = Instant.now();
         for (int i = 0; i < count; i++) {
-            QuestionDocument doc = QuestionDocument.builder()
-                    .questionId(3000000000000L + i)
+        QuestionDocument doc = QuestionDocument.builder()
+            .id(String.valueOf(3000000000000L + i))
                     .userId(TEST_USER_ID)
                     .questionBankId(TEST_QUESTION_BANK_ID)
-                    .questionText("Test Question " + i)
+            .title("Test Question " + i)
                     .questionType("MCQ")
                     .createdAt(now.minusSeconds(count - i))
                     .updatedAt(now.minusSeconds(count - i))

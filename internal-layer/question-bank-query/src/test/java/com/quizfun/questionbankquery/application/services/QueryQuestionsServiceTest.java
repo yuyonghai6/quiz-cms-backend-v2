@@ -45,8 +45,40 @@ class QueryQuestionsServiceTest {
     void shouldReturnQuestionsWithPaginationMetadata() {
         // GIVEN: Repository returns 2 questions and total count of 50
         List<QuestionDTO> mockQuestions = List.of(
-                new QuestionDTO(1L, "Q1", "MCQ", "EASY", null, null, Instant.now(), Instant.now()),
-                new QuestionDTO(2L, "Q2", "MCQ", "EASY", null, null, Instant.now(), Instant.now())
+        new QuestionDTO(
+            String.valueOf(1L), // questionId
+            null,               // sourceQuestionId
+            "MCQ",             // questionType
+            "Q1",              // title
+            null,               // content
+            null,               // points
+            null,               // status
+            null,               // solutionExplanation
+            null,               // displayOrder
+            null,               // typeSpecificData
+            null,               // taxonomy
+            Instant.now(),      // createdAt
+            Instant.now(),      // updatedAt
+            null,               // publishedAt
+            null                // archivedAt
+        ),
+        new QuestionDTO(
+            String.valueOf(2L),
+            null,
+            "MCQ",
+            "Q2",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Instant.now(),
+            Instant.now(),
+            null,
+            null
+        )
         );
 
         QueryQuestionsRequest request = QueryQuestionsRequest.builder()
@@ -200,10 +232,42 @@ class QueryQuestionsServiceTest {
     @DisplayName("Should handle pagination for last page correctly")
     void shouldHandlePaginationForLastPageCorrectly() {
         // GIVEN: Last page with partial results (42 total, page 2, size 20)
-        List<QuestionDTO> mockQuestions = List.of(
-                new QuestionDTO(1L, "Q1", "MCQ", "EASY", null, null, Instant.now(), Instant.now()),
-                new QuestionDTO(2L, "Q2", "MCQ", "EASY", null, null, Instant.now(), Instant.now())
-        );
+    List<QuestionDTO> mockQuestions = List.of(
+        new QuestionDTO(
+            String.valueOf(1L),
+            null,
+            "MCQ",
+            "Q1",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Instant.now(),
+            Instant.now(),
+            null,
+            null
+        ),
+        new QuestionDTO(
+            String.valueOf(2L),
+            null,
+            "MCQ",
+            "Q2",
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            Instant.now(),
+            Instant.now(),
+            null,
+            null
+        )
+    );
 
         QueryQuestionsRequest request = QueryQuestionsRequest.builder()
                 .userId(12345L)

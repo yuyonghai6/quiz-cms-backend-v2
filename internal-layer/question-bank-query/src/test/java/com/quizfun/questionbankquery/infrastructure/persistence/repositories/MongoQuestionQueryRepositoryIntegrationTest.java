@@ -68,8 +68,9 @@ class MongoQuestionQueryRepositoryIntegrationTest {
     @DisplayName("Full-text search should rank by relevance when sortBy=relevance")
     void fullTextSearchRanksByRelevance() {
         // Ensure text index exists for question_text
+        // create text index on title field
         mongoTemplate.getDb().getCollection(COLLECTION_NAME)
-                .createIndex(new org.bson.Document("question_text", "text"));
+                .createIndex(new org.bson.Document("title", "text"));
 
         Instant now = Instant.now();
         insertQuestionWithTimestamp("Paris is the capital of France", now);
@@ -89,15 +90,15 @@ class MongoQuestionQueryRepositoryIntegrationTest {
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
         assertThat(results).hasSize(2);
         // Both relevant docs should come first; order between them depends on Mongo scoring
-        assertThat(results.get(0).questionText().toLowerCase()).contains("capital");
-        assertThat(results.get(0).questionText().toLowerCase()).contains("paris");
+        assertThat(results.get(0).title().toLowerCase()).contains("capital");
+        assertThat(results.get(0).title().toLowerCase()).contains("paris");
     }
 
     @Test
     @DisplayName("Full-text count should respect taxonomy and text filters")
     void fullTextCountRespectsFilters() {
         mongoTemplate.getDb().getCollection(COLLECTION_NAME)
-                .createIndex(new org.bson.Document("question_text", "text"));
+                                .createIndex(new org.bson.Document("title", "text"));
 
         Instant now = Instant.now();
         insertQuestion("Apple computer history", now, List.of("tech"), List.of("tag1"), List.of("quiz1"));
@@ -135,7 +136,7 @@ class MongoQuestionQueryRepositoryIntegrationTest {
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
 
         assertThat(results).hasSize(5);
-        assertThat(results.getFirst().questionText()).isNotNull();
+        assertThat(results.getFirst().title()).isNotNull();
     }
 
     @Test
@@ -209,9 +210,9 @@ class MongoQuestionQueryRepositoryIntegrationTest {
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
 
         assertThat(results).hasSize(3);
-        assertThat(results.get(0).questionText()).isEqualTo("Q3");
-        assertThat(results.get(1).questionText()).isEqualTo("Q2");
-        assertThat(results.get(2).questionText()).isEqualTo("Q1");
+        assertThat(results.get(0).title()).isEqualTo("Q3");
+        assertThat(results.get(1).title()).isEqualTo("Q2");
+        assertThat(results.get(2).title()).isEqualTo("Q1");
     }
 
     @Test
@@ -234,9 +235,9 @@ class MongoQuestionQueryRepositoryIntegrationTest {
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
 
         assertThat(results).hasSize(3);
-        assertThat(results.get(0).questionText()).isEqualTo("Q1");
-        assertThat(results.get(1).questionText()).isEqualTo("Q2");
-        assertThat(results.get(2).questionText()).isEqualTo("Q3");
+        assertThat(results.get(0).title()).isEqualTo("Q1");
+        assertThat(results.get(1).title()).isEqualTo("Q2");
+        assertThat(results.get(2).title()).isEqualTo("Q3");
     }
 
     @Test
@@ -252,16 +253,16 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                 .questionBankId(TEST_QUESTION_BANK_ID)
                 .page(0)
                 .size(10)
-                .sortBy("questionText")
+                .sortBy("title")
                 .sortDirection("asc")
                 .build();
 
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
 
         assertThat(results).hasSize(3);
-        assertThat(results.get(0).questionText()).isEqualTo("Apple question");
-        assertThat(results.get(1).questionText()).isEqualTo("Mango question");
-        assertThat(results.get(2).questionText()).isEqualTo("Zebra question");
+        assertThat(results.get(0).title()).isEqualTo("Apple question");
+        assertThat(results.get(1).title()).isEqualTo("Mango question");
+        assertThat(results.get(2).title()).isEqualTo("Zebra question");
     }
 
     @Test
@@ -299,7 +300,7 @@ class MongoQuestionQueryRepositoryIntegrationTest {
 
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().questionText()).isEqualTo("QB both cats");
+        assertThat(results.getFirst().title()).isEqualTo("QB both cats");
     }
 
     @Test
@@ -316,13 +317,13 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                 .tags(List.of("t1", "t2"))
                 .page(0)
                 .size(10)
-                .sortBy("questionText")
+                .sortBy("title")
                 .sortDirection("asc")
                 .build();
 
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
         assertThat(results).hasSize(2);
-        assertThat(results.stream().map(QuestionDTO::questionText).toList()).containsExactly("QB tag t1", "QB tag t2");
+        assertThat(results.stream().map(QuestionDTO::title).toList()).containsExactly("QB tag t1", "QB tag t2");
     }
 
     @Test
@@ -339,13 +340,13 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                 .quizzes(List.of("q2", "q3"))
                 .page(0)
                 .size(10)
-                .sortBy("questionText")
+                .sortBy("title")
                 .sortDirection("asc")
                 .build();
 
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
         assertThat(results).hasSize(2);
-        assertThat(results.stream().map(QuestionDTO::questionText).toList()).containsExactly("QB quiz q2", "QB quiz q3");
+        assertThat(results.stream().map(QuestionDTO::title).toList()).containsExactly("QB quiz q2", "QB quiz q3");
     }
 
     @Test
@@ -362,13 +363,13 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                 .searchText("capital")
                 .page(0)
                 .size(10)
-                .sortBy("questionText")
+                .sortBy("title")
                 .sortDirection("asc")
                 .build();
 
         List<QuestionDTO> results = questionQueryRepository.queryQuestions(request);
         assertThat(results).hasSize(2);
-        assertThat(results.stream().map(QuestionDTO::questionText).toList())
+        assertThat(results.stream().map(QuestionDTO::title).toList())
                 .containsExactly("Capitalization matters?", "Paris is the Capital");
     }
 
@@ -377,13 +378,12 @@ class MongoQuestionQueryRepositoryIntegrationTest {
     void shouldMapAllQuestionFieldsCorrectly() {
         Long questionId = 123456789L;
         QuestionDocument doc = QuestionDocument.builder()
-                .questionId(questionId)
+                .id(String.valueOf(questionId))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("What is the capital of France?")
+                .title("What is the capital of France?")
                 .questionType("MCQ")
-                .difficultyLevel("EASY")
-                .typeSpecificData(Map.of(
+                .mcqData(Map.of(
                         "options", List.of("Paris", "London", "Berlin"),
                         "correctAnswer", "Paris"
                 ))
@@ -391,6 +391,7 @@ class MongoQuestionQueryRepositoryIntegrationTest {
                         .categories(List.of("Geography", "Europe"))
                         .tags(List.of("trivia", "beginner"))
                         .quizzes(List.of("geography-101"))
+                        .difficultyLevel("EASY")
                         .build())
                 .createdAt(Instant.now())
                 .updatedAt(Instant.now())
@@ -409,10 +410,10 @@ class MongoQuestionQueryRepositoryIntegrationTest {
 
         assertThat(results).hasSize(1);
         QuestionDTO dto = results.getFirst();
-        assertThat(dto.questionId()).isEqualTo(questionId);
-        assertThat(dto.questionText()).isEqualTo("What is the capital of France?");
+        assertThat(dto.questionId()).isEqualTo(String.valueOf(questionId));
+        assertThat(dto.title()).isEqualTo("What is the capital of France?");
         assertThat(dto.questionType()).isEqualTo("MCQ");
-        assertThat(dto.difficultyLevel()).isEqualTo("EASY");
+        assertThat(dto.taxonomy().difficultyLevel()).isEqualTo("EASY");
         assertThat(dto.typeSpecificData()).containsKey("options");
         assertThat(dto.taxonomy()).isNotNull();
         assertThat(dto.taxonomy().categories()).containsExactly("Geography", "Europe");
@@ -424,17 +425,17 @@ class MongoQuestionQueryRepositoryIntegrationTest {
         Instant now = Instant.now();
         for (int i = 0; i < count; i++) {
             QuestionDocument doc = QuestionDocument.builder()
-                    .questionId(1000000000000L + i)
+                    .id(String.valueOf(1000000000000L + i))
                     .userId(TEST_USER_ID)
                     .questionBankId(TEST_QUESTION_BANK_ID)
-                    .questionText("Test Question " + i)
+                    .title("Test Question " + i)
                     .questionType("MCQ")
-                    .difficultyLevel("EASY")
-                    .typeSpecificData(Map.of("options", List.of("A", "B", "C")))
+                    .mcqData(Map.of("options", List.of("A", "B", "C")))
                     .taxonomy(TaxonomyDocument.builder()
                             .categories(List.of("Test"))
                             .tags(List.of("test-tag"))
                             .quizzes(List.of("test-quiz"))
+                            .difficultyLevel("EASY")
                             .build())
                     .createdAt(now.minusSeconds(count - i))
                     .updatedAt(now.minusSeconds(count - i))
@@ -445,10 +446,10 @@ class MongoQuestionQueryRepositoryIntegrationTest {
 
     private void insertQuestionWithTimestamp(String text, Instant timestamp) {
         QuestionDocument doc = QuestionDocument.builder()
-                .questionId(System.currentTimeMillis())
+                .id(String.valueOf(System.currentTimeMillis()))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText(text)
+                .title(text)
                 .questionType("MCQ")
                 .createdAt(timestamp)
                 .updatedAt(timestamp)
@@ -458,10 +459,10 @@ class MongoQuestionQueryRepositoryIntegrationTest {
 
     private void insertQuestion(String text, Instant timestamp, List<String> categories, List<String> tags, List<String> quizzes) {
         QuestionDocument doc = QuestionDocument.builder()
-                .questionId(System.nanoTime())
+                .id(String.valueOf(System.nanoTime()))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText(text)
+                .title(text)
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(categories)

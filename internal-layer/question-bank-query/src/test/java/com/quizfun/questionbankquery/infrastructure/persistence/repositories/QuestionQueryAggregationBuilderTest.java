@@ -27,7 +27,7 @@ class QuestionQueryAggregationBuilderTest {
                 .userId(1L)
                 .questionBankId(2L)
                 .build();
-        Criteria c = builder.buildMatchCriteria(req);
+    Criteria c = builder.buildMatchCriteriaWithoutText(req);
         assertThat(c.getCriteriaObject()).containsKeys("user_id", "question_bank_id");
         assertThat(c.getCriteriaObject().get("user_id").toString()).contains("1");
         assertThat(c.getCriteriaObject().get("question_bank_id").toString()).contains("2");
@@ -43,7 +43,7 @@ class QuestionQueryAggregationBuilderTest {
                 .tags(List.of("t1", "t2"))
                 .quizzes(List.of("q1"))
                 .build();
-        Criteria c = builder.buildMatchCriteria(req);
+    Criteria c = builder.buildMatchCriteriaWithoutText(req);
         var obj = c.getCriteriaObject();
         assertThat(obj).containsKeys("taxonomy.categories", "taxonomy.tags", "taxonomy.quizzes");
         assertThat(obj.get("taxonomy.categories").toString()).contains("$all");
@@ -59,10 +59,12 @@ class QuestionQueryAggregationBuilderTest {
                 .questionBankId(2L)
                 .searchText("Capital")
                 .build();
-        Criteria c = builder.buildMatchCriteria(req);
-    assertThat(c.getCriteriaObject()).containsKey("question_text");
-    // Driver/Spring version may store BSON regex or java Pattern; ensure the rendered value includes the term
-    assertThat(c.getCriteriaObject().get("question_text").toString()).containsIgnoringCase("Capital");
+        // Search text is applied inside the aggregation pipeline in buildAggregation() now
+        Aggregation agg = builder.buildAggregation(req);
+        String pipeline = agg.toString();
+        assertThat(pipeline).contains("$match");
+        assertThat(pipeline).contains("title");
+        assertThat(pipeline).containsIgnoringCase("Capital");
     }
 
     @Test
@@ -73,7 +75,7 @@ class QuestionQueryAggregationBuilderTest {
                 .questionBankId(2L)
                 .page(2)
                 .size(10)
-                .sortBy("questionText")
+                .sortBy("title")
                 .sortDirection("asc")
                 .build();
 
@@ -87,9 +89,9 @@ class QuestionQueryAggregationBuilderTest {
         assertThat(pipeline).contains("$limit");
 
         // sort
-        Sort sort = builder.buildSort(req);
-        assertThat(sort.getOrderFor("question_text")).isNotNull();
-        assertThat(sort.getOrderFor("question_text").getDirection()).isEqualTo(Sort.Direction.ASC);
+    Sort sort = builder.buildSort(req);
+    assertThat(sort.getOrderFor("title")).isNotNull();
+    assertThat(sort.getOrderFor("title").getDirection()).isEqualTo(Sort.Direction.ASC);
         // pagination calculations
         assertThat(builder.computeSkip(req)).isEqualTo(20);
         assertThat(builder.computeLimit(req)).isEqualTo(10);

@@ -124,8 +124,21 @@ public class QuestionQueryAggregationBuilder {
      * Base criteria without searchText or taxonomy filters; useful for count queries.
      */
     public Criteria buildMatchCriteriaWithoutText(QueryQuestionsRequest request) {
-        return Criteria.where(F_USER_ID).is(request.getUserId())
+        Criteria criteria = Criteria.where(F_USER_ID).is(request.getUserId())
                 .and(F_QB_ID).is(request.getQuestionBankId());
+
+        // Also include taxonomy filters when present so count queries can leverage them
+        if (request.getCategories() != null && !request.getCategories().isEmpty()) {
+            criteria.and("taxonomy.categories").all(request.getCategories());
+        }
+        if (request.getTags() != null && !request.getTags().isEmpty()) {
+            criteria.and("taxonomy.tags").in(request.getTags());
+        }
+        if (request.getQuizzes() != null && !request.getQuizzes().isEmpty()) {
+            criteria.and("taxonomy.quizzes").in(request.getQuizzes());
+        }
+
+        return criteria;
     }
 
     /**

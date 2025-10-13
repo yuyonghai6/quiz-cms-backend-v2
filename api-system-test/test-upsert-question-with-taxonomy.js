@@ -38,7 +38,7 @@ function createMinimalMCQPayload(sourceQuestionId) {
     source_question_id: sourceQuestionId,
     question_type: 'mcq',
     title: 'Simple MCQ Question',
-    content: '<p>What is 2+2?</p>',
+    content: '<p>Tell me 2+2=?</p>',
     status: 'draft',
     solution_explanation: '<p>Basic arithmetic</p>',
     taxonomy: {

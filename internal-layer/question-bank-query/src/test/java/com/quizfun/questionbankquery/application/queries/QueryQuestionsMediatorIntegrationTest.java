@@ -193,11 +193,11 @@ class QueryQuestionsMediatorIntegrationTest {
     private void insertTestQuestions(int count) {
         Instant now = Instant.now();
         for (int i = 0; i < count; i++) {
-            QuestionDocument doc = QuestionDocument.builder()
-                    .questionId(4000000000000L + i)
+        QuestionDocument doc = QuestionDocument.builder()
+            .id(String.valueOf(4000000000000L + i))
                     .userId(TEST_USER_ID)
                     .questionBankId(TEST_QUESTION_BANK_ID)
-                    .questionText("Test Question " + i)
+                    .title("Test Question " + i)
                     .questionType("MCQ")
                     .taxonomy(TaxonomyDocument.builder()
                             .categories(List.of("Math"))

@@ -57,8 +57,12 @@ public class McqQuestionStrategy implements QuestionTypeStrategy {
             // Set MCQ-specific data
             questionAggregate.setMcqData(command.getMcqData());
 
-            // Note: Additional properties like solutionExplanation, status, etc.
-            // are set during aggregate creation or through separate update methods
+            // Apply optional metadata after type-specific data is set
+            questionAggregate.updateStatusAndMetadata(
+                command.getStatus(),
+                command.getDisplayOrder(),
+                command.getSolutionExplanation()
+            );
 
             logger.debug("Successfully processed MCQ question data for source ID: {}",
                         command.getSourceQuestionId());

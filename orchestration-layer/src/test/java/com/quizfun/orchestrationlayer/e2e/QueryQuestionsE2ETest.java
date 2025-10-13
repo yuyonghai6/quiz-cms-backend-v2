@@ -1,9 +1,9 @@
 package com.quizfun.orchestrationlayer.e2e;
 
-import com.quizfun.questionbankquery.infrastructure.persistence.documents.QuestionDocument;
-import com.quizfun.questionbankquery.infrastructure.persistence.documents.TaxonomyDocument;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Story;
+import org.bson.Document;
+import org.bson.types.ObjectId;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -12,21 +12,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import com.mongodb.client.model.Indexes;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,7 +60,8 @@ class QueryQuestionsE2ETest {
 
     private static final Long TEST_USER_ID = 12345L;
     private static final Long TEST_QUESTION_BANK_ID = 67890L;
-    private static final String COLLECTION_NAME = "questions";
+    private static final String QUESTIONS_COLLECTION = "questions";
+    private static final String REL_COLLECTION = "question_taxonomy_relationships";
 
     private String baseUrl;
 
@@ -67,19 +70,24 @@ class QueryQuestionsE2ETest {
         baseUrl = "http://localhost:" + port + "/api/v1/users/" + TEST_USER_ID
                 + "/question-banks/" + TEST_QUESTION_BANK_ID + "/questions";
 
-        mongoTemplate.dropCollection(COLLECTION_NAME);
-        mongoTemplate.createCollection(COLLECTION_NAME);
+    mongoTemplate.dropCollection(QUESTIONS_COLLECTION);
+    mongoTemplate.createCollection(QUESTIONS_COLLECTION);
 
-    // Ensure text index on question_text for full-text search paths (driver-level to avoid deprecations)
-    String collection = mongoTemplate.getCollectionName(QuestionDocument.class);
-    mongoTemplate.getDb().getCollection(collection).createIndex(Indexes.text("question_text"));
+    mongoTemplate.dropCollection(REL_COLLECTION);
+    mongoTemplate.createCollection(REL_COLLECTION);
+
+    // Ensure text index on title and content for search scenarios
+    Document indexDefinition = new Document("title", "text").append("content", "text");
+    mongoTemplate.getDb().getCollection(QUESTIONS_COLLECTION).createIndex(indexDefinition);
+    mongoTemplate.getDb().getCollection(QUESTIONS_COLLECTION).createIndex(new Document("status", 1));
 
         insertTestQuestions();
     }
 
     @AfterEach
     void tearDown() {
-        mongoTemplate.dropCollection(COLLECTION_NAME);
+    mongoTemplate.dropCollection(QUESTIONS_COLLECTION);
+    mongoTemplate.dropCollection(REL_COLLECTION);
     }
 
     @Test
@@ -150,8 +158,8 @@ class QueryQuestionsE2ETest {
     List<Map<String, Object>> questions = (List<Map<String, Object>>) response.getBody().get("questions");
         assertThat(questions).isNotEmpty();
 
-        String questionText = (String) questions.get(0).get("questionText");
-        assertThat(questionText.toLowerCase()).contains("equation");
+    String content = (String) questions.get(0).get("content");
+    assertThat(content.toLowerCase()).contains("equation");
     }
 
     @Test
@@ -249,10 +257,11 @@ class QueryQuestionsE2ETest {
         assertThat(questions).hasSize(1);
 
         Map<String, Object> question = questions.get(0);
-        assertThat(question).containsKeys(
-                "questionId", "questionText", "questionType",
-                "difficultyLevel", "taxonomy", "createdAt", "updatedAt"
-        );
+    assertThat(question).containsKeys(
+        "questionId", "sourceQuestionId", "questionType",
+        "title", "content", "status", "solutionExplanation",
+        "typeSpecificData", "taxonomy", "createdAt", "updatedAt"
+    );
 
         @SuppressWarnings("unchecked")
         Map<String, Object> taxonomy = (Map<String, Object>) question.get("taxonomy");
@@ -269,26 +278,83 @@ class QueryQuestionsE2ETest {
 
     private void insertTestQuestions() {
         Instant now = Instant.now();
+        List<Document> relationships = new ArrayList<>();
         for (int i = 0; i < 50; i++) {
-            TaxonomyDocument taxonomy = TaxonomyDocument.builder()
-                    .categories(List.of("Math", "Algebra"))
-                    .tags(List.of("algebra", "equations"))
-                    .quizzes(List.of("midterm-2024"))
-                    .build();
+            ObjectId questionId = new ObjectId();
+            Instant timestamp = now.minusSeconds(200 - i);
+            Document questionDoc = new Document()
+                    .append("_id", questionId)
+                    .append("user_id", TEST_USER_ID)
+                    .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                    .append("source_question_id", UUID.randomUUID().toString())
+                    .append("question_type", "mcq")
+                    .append("title", "Equation practice #" + i)
+                    .append("content", "<p>Solve the equation for x: " + i + "</p>")
+                    .append("points", 5)
+                    .append("status", "draft")
+                    .append("solution_explanation", "<p>Rearrange the equation to isolate x.</p>")
+                    .append("display_order", i + 1)
+            .append("mcq_data", new Document()
+                .append("options", List.of(
+                    new Document("key", "1")
+                        .append("text", "Correct answer")
+                        .append("is_correct", true),
+                    new Document("key", "2")
+                        .append("text", "Wrong answer")
+                        .append("is_correct", false)
+                ))
+                .append("shuffle_options", false)
+            )
+                    .append("created_at", Date.from(timestamp))
+                    .append("updated_at", Date.from(timestamp));
 
-            QuestionDocument doc = QuestionDocument.builder()
-                    .questionId(6000000000000L + i)
-                    .userId(TEST_USER_ID)
-                    .questionBankId(TEST_QUESTION_BANK_ID)
-                    .questionText("Solve the equation for x: " + i)
-                    .questionType("MCQ")
-                    .difficultyLevel("EASY")
-                    .taxonomy(taxonomy)
-                    .createdAt(now.minusSeconds(100 - i))
-                    .updatedAt(now.minusSeconds(100 - i))
-                    .build();
-
-            mongoTemplate.insert(doc, COLLECTION_NAME);
+            mongoTemplate.getDb().getCollection(QUESTIONS_COLLECTION).insertOne(questionDoc);
+            relationships.addAll(createRelationshipDocuments(questionId, timestamp));
         }
+
+        if (!relationships.isEmpty()) {
+            mongoTemplate.getDb().getCollection(REL_COLLECTION).insertMany(relationships);
+        }
+    }
+
+    private List<Document> createRelationshipDocuments(ObjectId questionId, Instant createdAt) {
+        Date createdDate = Date.from(createdAt);
+        return List.of(
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "category_level_1")
+                        .append("taxonomy_id", "Math")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "category_level_2")
+                        .append("taxonomy_id", "Algebra")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "tag")
+                        .append("taxonomy_id", "algebra")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "tag")
+                        .append("taxonomy_id", "equations")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "quiz")
+                        .append("taxonomy_id", "midterm-2024")
+                        .append("created_at", createdDate)
+        );
     }
 }

@@ -21,7 +21,7 @@ class TaxonomyDTOTest {
         List<String> tags = List.of("equations", "solve-for-x");
         List<String> quizzes = List.of("midterm-2024", "practice-set-1");
 
-        TaxonomyDTO dto = new TaxonomyDTO(categories, tags, quizzes);
+    TaxonomyDTO dto = new TaxonomyDTO(categories, tags, quizzes, "medium");
 
         assertThat(dto.categories()).isEqualTo(categories);
         assertThat(dto.tags()).isEqualTo(tags);
@@ -33,7 +33,7 @@ class TaxonomyDTOTest {
     void shouldCreateTaxonomyDTOWithEmptyLists() {
         List<String> empty = List.of();
 
-        TaxonomyDTO dto = new TaxonomyDTO(empty, empty, empty);
+    TaxonomyDTO dto = new TaxonomyDTO(empty, empty, empty, null);
 
         assertThat(dto.categories()).isEmpty();
         assertThat(dto.tags()).isEmpty();

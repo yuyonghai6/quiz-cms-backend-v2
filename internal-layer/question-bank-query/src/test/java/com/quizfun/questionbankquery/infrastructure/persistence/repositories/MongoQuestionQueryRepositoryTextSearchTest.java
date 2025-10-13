@@ -62,7 +62,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Create text index on question_text field (for full-text search performance)
         TextIndexDefinition textIndex = TextIndexDefinition.builder()
-                .onField("question_text")
+                .onField("title")
                 .build();
         mongoTemplate.indexOps(QuestionDocument.class).ensureIndex(textIndex);
 
@@ -91,7 +91,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions containing "equation"
         assertThat(results).hasSize(2);
-        assertThat(results).extracting(QuestionDTO::questionText)
+        assertThat(results).extracting(QuestionDTO::title)
                 .allMatch(text -> text.toLowerCase().contains("equation"));
     }
 
@@ -112,7 +112,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions with "capital" (case-insensitive)
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().questionText()).containsIgnoringCase("capital");
+        assertThat(results.getFirst().title()).containsIgnoringCase("capital");
     }
 
     @Test
@@ -132,7 +132,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions containing the phrase
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().questionText()).contains("linear equation");
+        assertThat(results.getFirst().title()).contains("linear equation");
     }
 
     @Test
@@ -152,7 +152,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions with "calculate" or "calculation"
         assertThat(results).isNotEmpty();
-        assertThat(results).extracting(QuestionDTO::questionText)
+        assertThat(results).extracting(QuestionDTO::title)
                 .anyMatch(text -> text.toLowerCase().contains("calc"));
     }
 
@@ -193,7 +193,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions matching BOTH filters (AND logic for categories)
         assertThat(results).hasSize(2);
-        assertThat(results).allMatch(q -> q.questionText().contains("equation"));
+        assertThat(results).allMatch(q -> q.title().contains("equation"));
         assertThat(results).allMatch(q -> q.taxonomy().categories().containsAll(List.of("Math", "Algebra")));
     }
 
@@ -215,7 +215,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions matching BOTH filters
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().questionText()).containsIgnoringCase("circle");
+        assertThat(results.getFirst().title()).containsIgnoringCase("circle");
         assertThat(results.getFirst().taxonomy().tags()).contains("geometry");
     }
 
@@ -239,7 +239,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return questions matching ALL filters
         assertThat(results).hasSize(1);
-        assertThat(results.getFirst().questionText()).contains("equation");
+        assertThat(results.getFirst().title()).contains("equation");
     }
 
     @Test
@@ -278,7 +278,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // THEN: Should return first result
         assertThat(page1).hasSize(1);
-        assertThat(page1.getFirst().questionText()).containsIgnoringCase("equation");
+        assertThat(page1.getFirst().title()).containsIgnoringCase("equation");
 
         // AND: Second page should have different result
         QueryQuestionsRequest request2 = QueryQuestionsRequest.builder()
@@ -290,7 +290,7 @@ class MongoQuestionQueryRepositoryTextSearchTest {
                 .build();
         List<QuestionDTO> page2 = questionQueryRepository.queryQuestions(request2);
         assertThat(page2).hasSize(1);
-        assertThat(page2.getFirst().questionText()).containsIgnoringCase("equation");
+        assertThat(page2.getFirst().title()).containsIgnoringCase("equation");
         assertThat(page2.getFirst().questionId()).isNotEqualTo(page1.getFirst().questionId());
     }
 
@@ -322,10 +322,10 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Q1: Contains "equation" and "solve"
         QuestionDocument q1 = QuestionDocument.builder()
-                .questionId(2000000000001L)
+                .id(String.valueOf(2000000000001L))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("Solve the linear equation for x")
+                .title("Solve the linear equation for x")
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(List.of("Math", "Algebra"))
@@ -338,10 +338,10 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Q2: Contains "circle" and "calculate"
         QuestionDocument q2 = QuestionDocument.builder()
-                .questionId(2000000000002L)
+                .id(String.valueOf(2000000000002L))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("Calculate the area of a circle")
+                .title("Calculate the area of a circle")
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(List.of("Math", "Geometry"))
@@ -354,10 +354,10 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Q3: Contains "capital"
         QuestionDocument q3 = QuestionDocument.builder()
-                .questionId(2000000000003L)
+                .id(String.valueOf(2000000000003L))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("What is the capital of France?")
+                .title("What is the capital of France?")
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(List.of("Geography"))
@@ -370,10 +370,10 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Q4: Contains "equation" (different from Q1)
         QuestionDocument q4 = QuestionDocument.builder()
-                .questionId(2000000000004L)
+                .id(String.valueOf(2000000000004L))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("Simplify the quadratic equation")
+                .title("Simplify the quadratic equation")
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(List.of("Math", "Algebra"))
@@ -386,10 +386,10 @@ class MongoQuestionQueryRepositoryTextSearchTest {
 
         // Q5: Generic question for pagination tests
         QuestionDocument q5 = QuestionDocument.builder()
-                .questionId(2000000000005L)
+                .id(String.valueOf(2000000000005L))
                 .userId(TEST_USER_ID)
                 .questionBankId(TEST_QUESTION_BANK_ID)
-                .questionText("This is a generic test question")
+                .title("This is a generic test question")
                 .questionType("MCQ")
                 .taxonomy(TaxonomyDocument.builder()
                         .categories(List.of("General"))

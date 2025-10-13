@@ -1,7 +1,5 @@
 package com.quizfun.orchestrationlayer.controllers;
 
-import com.quizfun.questionbankquery.infrastructure.persistence.documents.QuestionDocument;
-import com.quizfun.questionbankquery.infrastructure.persistence.documents.TaxonomyDocument;
 import io.qameta.allure.Epic;
 import io.qameta.allure.Story;
 import org.junit.jupiter.api.AfterEach;
@@ -12,7 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.index.TextIndexDefinition;
+import org.bson.Document;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -21,8 +19,13 @@ import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import org.bson.types.ObjectId;
+
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -57,6 +60,7 @@ class QueryQuestionsControllerIntegrationTest {
     private static final Long TEST_USER_ID = 12345L;
     private static final Long TEST_QUESTION_BANK_ID = 67890L;
     private static final String COLLECTION_NAME = "questions";
+    private static final String REL_COLLECTION_NAME = "question_taxonomy_relationships";
     private static final String BASE_URL = "/api/v1/users/{userId}/question-banks/{questionBankId}/questions";
 
     @BeforeEach
@@ -64,11 +68,14 @@ class QueryQuestionsControllerIntegrationTest {
         mongoTemplate.dropCollection(COLLECTION_NAME);
         mongoTemplate.createCollection(COLLECTION_NAME);
 
-        // Create text index on question_text field (required for text search)
-        TextIndexDefinition textIndex = TextIndexDefinition.builder()
-                .onField("question_text")
-                .build();
-        mongoTemplate.indexOps(QuestionDocument.class).ensureIndex(textIndex);
+        mongoTemplate.dropCollection(REL_COLLECTION_NAME);
+        mongoTemplate.createCollection(REL_COLLECTION_NAME);
+
+    // Create text index on title and content fields for text search
+    mongoTemplate.getDb().getCollection(COLLECTION_NAME)
+        .createIndex(new Document("title", "text").append("content", "text"));
+    mongoTemplate.getDb().getCollection(COLLECTION_NAME)
+        .createIndex(new Document("status", 1));
 
         insertTestQuestions();
     }
@@ -76,6 +83,7 @@ class QueryQuestionsControllerIntegrationTest {
     @AfterEach
     void tearDown() {
         mongoTemplate.dropCollection(COLLECTION_NAME);
+        mongoTemplate.dropCollection(REL_COLLECTION_NAME);
     }
 
     @Test
@@ -129,7 +137,7 @@ class QueryQuestionsControllerIntegrationTest {
                         .param("searchText", "equation"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.questions", hasSize(greaterThan(0))))
-                .andExpect(jsonPath("$.questions[0].questionText", containsString("equation")));
+                .andExpect(jsonPath("$.questions[0].content", containsString("equation")));
     }
 
     @Test
@@ -185,10 +193,10 @@ class QueryQuestionsControllerIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should support sorting by questionText")
-    void shouldSupportSortingByQuestionText() throws Exception {
+    @DisplayName("Should support sorting by title")
+    void shouldSupportSortingByTitle() throws Exception {
         mockMvc.perform(get(BASE_URL, TEST_USER_ID, TEST_QUESTION_BANK_ID)
-                        .param("sortBy", "questionText")
+                        .param("sortBy", "title")
                         .param("sortDirection", "asc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.questions", hasSize(greaterThan(0))));
@@ -227,8 +235,10 @@ class QueryQuestionsControllerIntegrationTest {
                         .param("size", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.questions[0].questionId", notNullValue()))
-                .andExpect(jsonPath("$.questions[0].questionText", notNullValue()))
-                .andExpect(jsonPath("$.questions[0].questionType", notNullValue()))
+                .andExpect(jsonPath("$.questions[0].title", notNullValue()))
+                .andExpect(jsonPath("$.questions[0].content", notNullValue()))
+                .andExpect(jsonPath("$.questions[0].status", notNullValue()))
+                .andExpect(jsonPath("$.questions[0].solutionExplanation", notNullValue()))
                 .andExpect(jsonPath("$.questions[0].createdAt", notNullValue()))
                 .andExpect(jsonPath("$.questions[0].updatedAt", notNullValue()));
     }
@@ -237,26 +247,83 @@ class QueryQuestionsControllerIntegrationTest {
 
     private void insertTestQuestions() {
         Instant now = Instant.now();
+        List<Document> relationships = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
-            TaxonomyDocument taxonomy = TaxonomyDocument.builder()
-                    .categories(List.of("Math", "Algebra"))
-                    .tags(List.of("algebra", "equations"))
-                    .quizzes(List.of("midterm-2024"))
-                    .build();
+            ObjectId questionObjectId = new ObjectId();
+            Document questionDoc = new Document()
+                    .append("_id", questionObjectId)
+                    .append("user_id", TEST_USER_ID)
+                    .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                    .append("source_question_id", UUID.randomUUID().toString())
+                    .append("question_type", "mcq")
+                    .append("title", "Equation practice #" + i)
+                    .append("content", "<p>Solve the equation for x: " + i + "</p>")
+                    .append("points", 5)
+                    .append("status", "draft")
+                    .append("solution_explanation", "<p>Rearrange the equation to isolate x.</p>")
+                    .append("display_order", i + 1)
+            .append("mcq_data", new Document()
+                .append("options", List.of(
+                    new Document("key", "1")
+                        .append("text", "Correct answer")
+                        .append("is_correct", true),
+                    new Document("key", "2")
+                        .append("text", "Wrong answer")
+                        .append("is_correct", false)
+                ))
+                .append("shuffle_options", false)
+            )
+                    .append("created_at", Date.from(now.minusSeconds(100 - i)))
+                    .append("updated_at", Date.from(now.minusSeconds(100 - i)));
 
-            QuestionDocument doc = QuestionDocument.builder()
-                    .questionId(5000000000000L + i)
-                    .userId(TEST_USER_ID)
-                    .questionBankId(TEST_QUESTION_BANK_ID)
-                    .questionText("Solve the equation for x: " + i)
-                    .questionType("MCQ")
-                    .difficultyLevel("EASY")
-                    .taxonomy(taxonomy)
-                    .createdAt(now.minusSeconds(100 - i))
-                    .updatedAt(now.minusSeconds(100 - i))
-                    .build();
+            mongoTemplate.getDb().getCollection(COLLECTION_NAME).insertOne(questionDoc);
 
-            mongoTemplate.insert(doc, COLLECTION_NAME);
+            relationships.addAll(createRelationshipDocuments(questionObjectId, now.minusSeconds(100 - i)));
         }
+
+        if (!relationships.isEmpty()) {
+            mongoTemplate.getDb().getCollection(REL_COLLECTION_NAME).insertMany(relationships);
+        }
+    }
+
+    private List<Document> createRelationshipDocuments(ObjectId questionId, Instant createdAt) {
+        Date createdDate = Date.from(createdAt);
+        return List.of(
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "category_level_1")
+                        .append("taxonomy_id", "Math")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "category_level_2")
+                        .append("taxonomy_id", "Algebra")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "tag")
+                        .append("taxonomy_id", "algebra")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "tag")
+                        .append("taxonomy_id", "equations")
+                        .append("created_at", createdDate),
+                new Document()
+                        .append("user_id", TEST_USER_ID)
+                        .append("question_bank_id", TEST_QUESTION_BANK_ID)
+                        .append("question_id", questionId)
+                        .append("taxonomy_type", "quiz")
+                        .append("taxonomy_id", "midterm-2024")
+                        .append("created_at", createdDate)
+        );
     }
 }

@@ -154,7 +154,7 @@ class QueryQuestionsRequestTest {
     @Test
     @DisplayName("Should validate sortBy field values")
     void shouldValidateSortByFieldValues() {
-        List<String> validSortByValues = List.of("createdAt", "updatedAt", "questionText");
+        List<String> validSortByValues = List.of("createdAt", "updatedAt", "title", "content", "relevance");
         for (String sortBy : validSortByValues) {
             QueryQuestionsRequest request = QueryQuestionsRequest.builder()
                     .userId(123456L)

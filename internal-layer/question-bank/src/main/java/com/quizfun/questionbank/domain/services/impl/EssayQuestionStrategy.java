@@ -60,8 +60,12 @@ public class EssayQuestionStrategy implements QuestionTypeStrategy {
             // Set Essay-specific data
             questionAggregate.setEssayData(command.getEssayData());
 
-            // Note: Additional properties like solutionExplanation, status, etc.
-            // are set during aggregate creation or through separate update methods
+            // Apply optional metadata after type-specific data is set
+            questionAggregate.updateStatusAndMetadata(
+                command.getStatus(),
+                command.getDisplayOrder(),
+                command.getSolutionExplanation()
+            );
 
             logger.debug("Successfully processed Essay question data for source ID: {}",
                         command.getSourceQuestionId());

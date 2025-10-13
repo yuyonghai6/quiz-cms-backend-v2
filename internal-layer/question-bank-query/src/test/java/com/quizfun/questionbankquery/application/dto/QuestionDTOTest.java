@@ -31,28 +31,41 @@ class QuestionDTOTest {
         TaxonomyDTO taxonomy = new TaxonomyDTO(
                 List.of("Geography", "Europe", "Capitals"),
                 List.of("trivia", "beginner"),
-                List.of("quick-quiz", "geography-101")
+                List.of("quick-quiz", "geography-101"),
+                "EASY"
         );
         Instant createdAt = Instant.now();
         Instant updatedAt = Instant.now();
 
         // WHEN: Creating QuestionDTO
         QuestionDTO dto = new QuestionDTO(
-                questionId,
-                questionText,
-                questionType,
-                difficultyLevel,
-                typeSpecificData,
-                taxonomy,
-                createdAt,
-                updatedAt
+                String.valueOf(questionId), // questionId as String
+                null,                      // sourceQuestionId
+                questionType,              // questionType
+                questionText,              // title
+                null,                      // content
+                null,                      // points
+                null,                      // status
+                null,                      // solutionExplanation
+                null,                      // displayOrder
+                typeSpecificData,          // typeSpecificData
+                new TaxonomyDTO(
+                        taxonomy.categories(),
+                        taxonomy.tags(),
+                        taxonomy.quizzes(),
+                        difficultyLevel          // difficultyLevel
+                ),
+                createdAt,                 // createdAt
+                updatedAt,                 // updatedAt
+                null,                      // publishedAt
+                null                       // archivedAt
         );
 
         // THEN: All fields should be set correctly
-        assertThat(dto.questionId()).isEqualTo(questionId);
-        assertThat(dto.questionText()).isEqualTo(questionText);
+        assertThat(dto.questionId()).isEqualTo(String.valueOf(questionId));
+        assertThat(dto.title()).isEqualTo(questionText);
         assertThat(dto.questionType()).isEqualTo(questionType);
-        assertThat(dto.difficultyLevel()).isEqualTo(difficultyLevel);
+        assertThat(dto.taxonomy().difficultyLevel()).isEqualTo(difficultyLevel);
         assertThat(dto.typeSpecificData()).isEqualTo(typeSpecificData);
         assertThat(dto.taxonomy()).isEqualTo(taxonomy);
         assertThat(dto.createdAt()).isEqualTo(createdAt);
@@ -68,20 +81,29 @@ class QuestionDTOTest {
         String questionType = "ESSAY";
 
         // WHEN: Creating QuestionDTO with nulls
+        Instant now = Instant.now();
         QuestionDTO dto = new QuestionDTO(
-                questionId,
-                questionText,
-                questionType,
-                null,  // difficultyLevel optional
-                Map.of(),  // empty type-specific data
-                null,  // taxonomy optional
-                Instant.now(),
-                Instant.now()
+                String.valueOf(questionId),  // questionId as String
+                null,                        // sourceQuestionId
+                questionType,                // questionType
+                questionText,                // title
+                null,                        // content
+                null,                        // points
+                null,                        // status
+                null,                        // solutionExplanation
+                null,                        // displayOrder
+                Map.of(),                    // empty type-specific data
+                null,                        // taxonomy optional
+                now,                         // createdAt
+                now,                         // updatedAt
+                null,                        // publishedAt
+                null                         // archivedAt
         );
 
         // THEN: Should be created successfully
-        assertThat(dto.questionId()).isEqualTo(questionId);
-        assertThat(dto.difficultyLevel()).isNull();
+        // THEN: Should be created successfully
+        assertThat(dto.questionId()).isEqualTo(String.valueOf(questionId));
+        assertThat(dto.title()).isEqualTo(questionText);
         assertThat(dto.taxonomy()).isNull();
     }
 }

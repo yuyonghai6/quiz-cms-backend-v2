@@ -49,7 +49,23 @@ class QueryQuestionsHandlerTest {
                 .build();
 
         List<QuestionDTO> mockQuestions = List.of(
-                new QuestionDTO(1L, "Q1", "MCQ", "EASY", null, null, Instant.now(), Instant.now())
+                new QuestionDTO(
+                        String.valueOf(1L),   // questionId
+                        null,                  // sourceQuestionId
+                        "MCQ",               // questionType
+                        "Q1",                // title
+                        null,                  // content
+                        null,                  // points
+                        null,                  // status
+                        null,                  // solutionExplanation
+                        null,                  // displayOrder
+                        null,                  // typeSpecificData
+                        null,                  // taxonomy
+                        Instant.now(),         // createdAt
+                        Instant.now(),         // updatedAt
+                        null,                  // publishedAt
+                        null                   // archivedAt
+                )
         );
 
         PaginationMetadata pagination = new PaginationMetadata(0, 20, 1, 1);
