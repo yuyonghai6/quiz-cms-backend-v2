@@ -52,6 +52,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         "com.quizfun.questionbank.application",
         "com.quizfun.questionbank.domain",
         "com.quizfun.questionbank.infrastructure",
+        "com.quizfun.questionbank.security",
         "com.quizfun.globalshared"
     },
     excludeFilters = {
@@ -118,69 +119,5 @@ public class TestContainersConfig {
 
     public static MongoDBContainer getMongoContainer() {
         return mongoContainer;
-    }
-
-    
-
-    @Bean
-    @Primary
-    public QuestionBanksPerUserRepository questionBanksPerUserRepositoryStub() {
-        return new QuestionBanksPerUserRepository() {
-            @Override
-            public Result<Boolean> validateOwnership(Long userId, Long questionBankId) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Long> getDefaultQuestionBankId(Long userId) {
-                return Result.success(1L);
-            }
-
-            @Override
-            public Result<Boolean> isQuestionBankActive(Long userId, Long questionBankId) {
-                return Result.success(true);
-            }
-        };
-    }
-
-    @Bean
-    @Primary
-    public TaxonomySetRepository taxonomySetRepositoryStub() {
-        return new TaxonomySetRepository() {
-            @Override
-            public Result<Boolean> validateTaxonomyReferences(Long userId, Long questionBankId, java.util.List<String> taxonomyIds) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Boolean> validateTaxonomyReference(Long userId, Long questionBankId, String taxonomyId) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Boolean> validateCategoryReference(Long userId, Long questionBankId, String categoryId, String level) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Boolean> validateTagReference(Long userId, Long questionBankId, String tagId) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Boolean> validateQuizReference(Long userId, Long questionBankId, String quizId) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<Boolean> validateDifficultyLevelReference(Long userId, Long questionBankId, String difficultyLevel) {
-                return Result.success(true);
-            }
-
-            @Override
-            public Result<java.util.List<String>> getInvalidTaxonomyReferences(Long userId, Long questionBankId, java.util.List<String> taxonomyIds) {
-                return Result.success(java.util.List.of());
-            }
-        };
     }
 }

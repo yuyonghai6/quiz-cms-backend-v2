@@ -5,8 +5,7 @@ import com.quizfun.questionbank.application.dto.TaxonomyData;
 import com.quizfun.questionbank.application.dto.UpsertQuestionRequestDto;
 import com.quizfun.questionbank.application.ports.out.QuestionBanksPerUserRepository;
 import com.quizfun.questionbank.application.ports.out.TaxonomySetRepository;
-import com.quizfun.questionbank.application.security.SecurityAuditLogger;
-import com.quizfun.questionbank.application.security.SecurityContextValidator;
+import com.quizfun.questionbank.application.security.*;
 import com.quizfun.questionbank.application.validation.QuestionBankOwnershipValidator;
 import com.quizfun.questionbank.application.validation.QuestionDataIntegrityValidator;
 import com.quizfun.questionbank.application.validation.TaxonomyReferenceValidator;
@@ -65,15 +64,26 @@ class ValidationChainIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Create individual validators
+        // Create all individual validators (including new security validators)
+        var rateLimitValidator = new RateLimitValidator(securityAuditLogger, retryHelper, metrics);
+        var concurrentSessionValidator = new ConcurrentSessionValidator(securityAuditLogger, retryHelper, metrics);
+        var sessionValidator = new SessionManagementValidator(securityAuditLogger, retryHelper, metrics);
         var securityValidator = new SecurityContextValidator(null, securityAuditLogger, retryHelper, metrics);
         var ownershipValidator = new QuestionBankOwnershipValidator(questionBanksRepository, retryHelper, securityAuditLogger);
         var taxonomyValidator = new TaxonomyReferenceValidator(taxonomyRepository);
         var dataValidator = new QuestionDataIntegrityValidator();
 
-        // Configure the validation chain using the configuration class
+        // Configure the validation chain using the configuration class with all 7 validators
         var config = new ValidationChainConfig();
-        validationChain = config.questionUpsertValidationChain(securityValidator, ownershipValidator, taxonomyValidator, dataValidator);
+        validationChain = config.questionUpsertValidationChain(
+            rateLimitValidator,
+            concurrentSessionValidator,
+            sessionValidator,
+            securityValidator,
+            ownershipValidator,
+            taxonomyValidator,
+            dataValidator
+        );
 
         // Create a valid command for testing
         validCommand = new UpsertQuestionCommand(1001L, 2002L, createValidRequest());
@@ -310,19 +320,32 @@ class ValidationChainIntegrationTest {
             // Arrange
             setupSuccessfulRepositoryResponses();
 
-            var results = new java.util.concurrent.ConcurrentLinkedQueue<Boolean>();
-            var executor = java.util.concurrent.Executors.newFixedThreadPool(10);
-            var latch = new java.util.concurrent.CountDownLatch(50);
+            // Setup repository responses for all concurrent user IDs (1000-1014)
+            for (long userId = 1000L; userId <= 1014L; userId++) {
+                when(questionBanksRepository.validateOwnership(userId, 2002L))
+                    .thenReturn(Result.success(true));
+                when(questionBanksRepository.isQuestionBankActive(userId, 2002L))
+                    .thenReturn(Result.success(true));
+            }
+            // Setup taxonomy validation for any user ID with question bank 2002L
+            when(taxonomyRepository.validateTaxonomyReferences(anyLong(), eq(2002L), any()))
+                .thenReturn(Result.success(true));
 
-            // Act - Submit 50 concurrent validation requests
-            for (int i = 0; i < 50; i++) {
+            var results = new java.util.concurrent.ConcurrentLinkedQueue<Boolean>();
+            var executor = java.util.concurrent.Executors.newFixedThreadPool(5); // Reduced thread pool for controlled concurrency
+            var latch = new java.util.concurrent.CountDownLatch(15); // Reduced to 15 to stay under rate limits
+
+            // Act - Submit 15 concurrent validation requests (under burst limit of 20 per 10s)
+            for (int i = 0; i < 15; i++) {
                 final int requestId = i;
+                final long userId = 1000L + requestId; // Different user per request to avoid rate limiting
                 executor.submit(() -> {
                     try {
                         // Set up security context for this thread (required for SecurityContextValidator)
                         var jwt = Jwt.withTokenValue("test-token-" + requestId)
                                 .header("alg", "HS256")
-                                .claim("sub", "1001")  // Matches the user ID in command
+                                .claim("sub", String.valueOf(userId))  // Use unique user ID to avoid rate limit
+                                .claim("jti", "session-" + requestId)  // Unique session ID per request
                                 .claim("iat", Instant.now())
                                 .claim("exp", Instant.now().plusSeconds(3600))
                                 .build();
@@ -337,7 +360,7 @@ class ValidationChainIntegrationTest {
                             .mcqData(createValidMcqData())
                             .build();
 
-                        var command = new UpsertQuestionCommand(1001L, 2002L, request);
+                        var command = new UpsertQuestionCommand(userId, 2002L, request);
                         var result = validationChain.validate(command);
                         results.add(result.isSuccess());
                     } finally {
@@ -350,7 +373,7 @@ class ValidationChainIntegrationTest {
 
             // Assert
             latch.await(10, java.util.concurrent.TimeUnit.SECONDS);
-            assertThat(results).hasSize(50);
+            assertThat(results).hasSize(15);
             assertThat(results.stream().allMatch(success -> success)).isTrue();
 
             executor.shutdown();
