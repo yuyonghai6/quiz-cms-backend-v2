@@ -55,7 +55,37 @@ public class QuestionApplicationServiceIntegrationTest extends BaseTestConfigura
         @DisplayName("Should execute complete happy path workflow with real MongoDB transactions")
         @Description("Verifies the complete end-to-end workflow including validation, strategy processing, question persistence, and relationship management with real MongoDB transactions")
         void shouldExecuteCompleteHappyPathWorkflowWithRealMongoDbTransactions() {
-            // Given: Valid command with complete taxonomy data
+            // Given: A user owns a question bank
+            Document ownership = new Document("user_id", 12345L)
+                .append("question_banks", List.of(
+                    new Document("bank_id", 789L)
+                        .append("name", "Integration Test Bank")
+                        .append("is_active", true)
+                        .append("is_default", false)
+                ));
+            mongoTemplate.insert(ownership, "question_banks_per_user");
+
+            // And: The taxonomy set for the question bank exists
+            Document taxonomySet = new Document("user_id", 12345L)
+                .append("question_bank_id", 789L)
+                .append("categories", new Document()
+                    .append("level_1", new Document("id", "tech").append("name", "Technology"))
+                    .append("level_2", new Document("id", "prog").append("name", "Programming"))
+                    .append("level_3", new Document("id", "web_dev").append("name", "Web Development"))
+                    .append("level_4", new Document("id", "spring").append("name", "Spring Framework")))
+                .append("tags", List.of(
+                    new Document("id", "spring-ioc").append("name", "Spring IoC"),
+                    new Document("id", "dependency-injection").append("name", "Dependency Injection")
+                ))
+                .append("quizzes", List.of(
+                    new Document("quiz_id", 201L).append("quiz_name", "Spring Framework Fundamentals")
+                ))
+                .append("available_difficulty_levels", List.of(
+                    new Document("level", "medium").append("numeric_value", 2)
+                ));
+            mongoTemplate.insert(taxonomySet, "taxonomy_sets");
+            
+            // And: A valid command with complete taxonomy data
             UpsertQuestionCommand command = createValidUpsertCommand();
 
             // When: Executing complete upsert workflow

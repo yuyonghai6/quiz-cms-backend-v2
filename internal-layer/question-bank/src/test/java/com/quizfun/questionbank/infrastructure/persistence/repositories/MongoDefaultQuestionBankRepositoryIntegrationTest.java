@@ -222,7 +222,7 @@ class MongoDefaultQuestionBankRepositoryIntegrationTest {
 
         Thread thread2 = new Thread(() -> {
             try {
-                Thread.sleep(10);  // Slight delay
+                Thread.sleep(100);  // Slight delay
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
