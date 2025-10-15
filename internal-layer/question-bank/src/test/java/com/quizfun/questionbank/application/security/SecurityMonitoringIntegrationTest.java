@@ -224,7 +224,7 @@ class SecurityMonitoringIntegrationTest {
     void shouldHandlePublishingFailuresGracefully() {
         // Arrange - Mock failure
         doThrow(new RuntimeException("Event bus failure"))
-            .when(eventPublisher).publishEvent(any());
+            .when(eventPublisher).publishEvent(any(SecurityEvent.class));
 
         var event = createSecurityEvent(SecurityEventType.PATH_PARAMETER_MANIPULATION, SeverityLevel.CRITICAL, 1001L);
 
