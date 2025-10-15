@@ -34,7 +34,11 @@
       "Bash(mvn -Dtest=DefaultQuestionBankApplicationServiceTest test -pl internal-layer/question-bank)",
       "Bash(mvn -Dtest=DefaultQuestionBankControllerTest test -pl orchestration-layer -Djacoco.skip=true)",
       "Bash(cat:*)",
-      "Bash(timeout 30 mvn spring-boot:run:*)"
+      "Bash(timeout 30 mvn spring-boot:run:*)",
+      "Bash(k6 run:*)",
+      "Read(//tmp/**)",
+      "Bash(pkill:*)",
+      "WebFetch(domain:github.com)"
     ]
   },
   "outputStyle": "Learning"

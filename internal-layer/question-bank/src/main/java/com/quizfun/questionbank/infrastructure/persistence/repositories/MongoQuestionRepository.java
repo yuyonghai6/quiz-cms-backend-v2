@@ -40,11 +40,16 @@ public class MongoQuestionRepository implements QuestionRepository {
 
             QuestionDocument existing = mongoTemplate.findOne(query, QuestionDocument.class);
             if (existing != null && existing.getId() != null) {
-                // preserve _id for update scenario
+                // preserve _id and createdAt for update scenario
                 try {
                     java.lang.reflect.Field idField = com.quizfun.questionbank.domain.aggregates.QuestionAggregate.class.getDeclaredField("id");
                     idField.setAccessible(true);
                     idField.set(aggregate, existing.getId());
+
+                    // Preserve createdAt timestamp so update detection works correctly
+                    java.lang.reflect.Field createdAtField = com.quizfun.shared.domain.AggregateRoot.class.getDeclaredField("createdAt");
+                    createdAtField.setAccessible(true);
+                    createdAtField.set(aggregate, existing.toAggregate().getCreatedAt());
                 } catch (Exception ignored) {}
             }
 

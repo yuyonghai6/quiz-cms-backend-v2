@@ -42,14 +42,31 @@ public class MongoTaxonomySetRepository implements TaxonomySetRepository {
                 return Result.success(true); // Empty list is valid
             }
 
-            // Check if taxonomy set exists for user and question bank
+            // First check if taxonomy set document exists
             Query query = Query.query(
                 Criteria.where("user_id").is(userId)
                     .and("question_bank_id").is(questionBankId)
             );
 
-            boolean exists = mongoTemplate.exists(query, TaxonomySetDocument.class);
-            return Result.success(exists);
+            TaxonomySetDocument document = mongoTemplate.findOne(query, TaxonomySetDocument.class);
+
+            if (document == null) {
+                logger.warn("No taxonomy set found for user {} and bank {} - all references are invalid",
+                    userId, questionBankId);
+                return Result.success(false);
+            }
+
+            // Now validate each taxonomy ID actually exists in the document
+            for (String taxonomyId : taxonomyIds) {
+                if (!taxonomyExistsInDocument(document, taxonomyId)) {
+                    logger.warn("Taxonomy reference '{}' not found in taxonomy set for user {} and bank {}",
+                        taxonomyId, userId, questionBankId);
+                    return Result.success(false);
+                }
+            }
+
+            logger.debug("All {} taxonomy references validated successfully", taxonomyIds.size());
+            return Result.success(true);
 
         } catch (DataAccessException ex) {
             logger.error("Database error validating taxonomy references for user {} and bank {}",
@@ -62,6 +79,59 @@ public class MongoTaxonomySetRepository implements TaxonomySetRepository {
             return Result.failure("VALIDATION_ERROR",
                 "Unexpected error during taxonomy validation: " + ex.getMessage());
         }
+    }
+
+    /**
+     * Helper method to check if a taxonomy ID exists anywhere in the taxonomy set document.
+     * Checks categories (all levels), tags, quizzes, and difficulty levels.
+     */
+    private boolean taxonomyExistsInDocument(TaxonomySetDocument document, String taxonomyId) {
+        // Check categories at all levels
+        if (document.getCategories() != null) {
+            var categories = document.getCategories();
+
+            if (categories.getLevel1() != null && taxonomyId.equals(categories.getLevel1().getId())) {
+                return true;
+            }
+            if (categories.getLevel2() != null && taxonomyId.equals(categories.getLevel2().getId())) {
+                return true;
+            }
+            if (categories.getLevel3() != null && taxonomyId.equals(categories.getLevel3().getId())) {
+                return true;
+            }
+            if (categories.getLevel4() != null && taxonomyId.equals(categories.getLevel4().getId())) {
+                return true;
+            }
+        }
+
+        // Check tags
+        if (document.getTags() != null) {
+            for (var tag : document.getTags()) {
+                if (taxonomyId.equals(tag.getId())) {
+                    return true;
+                }
+            }
+        }
+
+        // Check quizzes (taxonomyId might be a string representation of quiz ID)
+        if (document.getQuizzes() != null) {
+            for (var quiz : document.getQuizzes()) {
+                if (taxonomyId.equals(String.valueOf(quiz.getQuizId()))) {
+                    return true;
+                }
+            }
+        }
+
+        // Check difficulty levels
+        if (document.getAvailableDifficultyLevels() != null) {
+            for (var difficultyLevel : document.getAvailableDifficultyLevels()) {
+                if (taxonomyId.equals(difficultyLevel.getLevel())) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     @Override
@@ -280,11 +350,15 @@ public class MongoTaxonomySetRepository implements TaxonomySetRepository {
                 return Result.success(new ArrayList<>(taxonomyIds));
             }
 
-            // For now, return empty list as all references are considered valid if taxonomy set exists
-            // In a real implementation, you would check each taxonomyId against the document structure
+            // Check each taxonomyId against the document structure
             List<String> invalidIds = new ArrayList<>();
+            for (String taxonomyId : taxonomyIds) {
+                if (!taxonomyExistsInDocument(document, taxonomyId)) {
+                    invalidIds.add(taxonomyId);
+                }
+            }
 
-            logger.debug("Found {} invalid taxonomy references", invalidIds.size());
+            logger.debug("Found {} invalid taxonomy references: {}", invalidIds.size(), invalidIds);
             return Result.success(invalidIds);
 
         } catch (DataAccessException ex) {

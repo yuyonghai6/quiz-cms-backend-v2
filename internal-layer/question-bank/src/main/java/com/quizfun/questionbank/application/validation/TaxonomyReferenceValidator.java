@@ -78,13 +78,13 @@ public class TaxonomyReferenceValidator extends ValidationHandler {
                 String invalidReferencesMessage;
                 if (invalidReferencesResult.isSuccess() && !invalidReferencesResult.getValue().isEmpty()) {
                     List<String> invalidRefs = invalidReferencesResult.getValue();
-                    invalidReferencesMessage = String.format("Invalid taxonomy references found: %s",
+                    invalidReferencesMessage = String.format("TAXONOMY_REFERENCE_NOT_FOUND: Invalid taxonomy references found: %s",
                         String.join(", ", invalidRefs));
 
                     logger.warn("Invalid taxonomy references: {} for user {} and question bank {}",
                                invalidRefs, upsertCommand.getUserId(), upsertCommand.getQuestionBankId());
                 } else {
-                    invalidReferencesMessage = "Some taxonomy references are invalid";
+                    invalidReferencesMessage = "TAXONOMY_REFERENCE_NOT_FOUND: Some taxonomy references are invalid";
                     logger.warn("Taxonomy validation failed but could not determine specific invalid references for user {} and question bank {}",
                                upsertCommand.getUserId(), upsertCommand.getQuestionBankId());
                 }

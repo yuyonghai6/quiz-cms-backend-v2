@@ -1,0 +1,390 @@
+{
+  "root_group": {
+    "id": "d41d8cd98f00b204e9800998ecf8427e",
+    "groups": [
+      {
+        "checks": [
+          {
+            "name": "✓ status is 200 OK",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ status is 200 OK",
+            "id": "63bee92b4cb72466c3289c041345e804",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "id": "b5a0f9245d7d259d49aa68ea907d9ca9",
+            "passes": 1,
+            "fails": 0,
+            "name": "✓ content-type is JSON",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ content-type is JSON"
+          },
+          {
+            "fails": 0,
+            "name": "✓ response has success field",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ response has success field",
+            "id": "87050d00bc36c6c0f9284f8ab1047672",
+            "passes": 1
+          },
+          {
+            "fails": 0,
+            "name": "✓ success is true",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ success is true",
+            "id": "81d7212453906612890f7af1e1bb7e08",
+            "passes": 1
+          },
+          {
+            "name": "✓ message indicates success",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ message indicates success",
+            "id": "320d69c4c5803a0adf01c849e36d423d",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "name": "✓ data object exists",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ data object exists",
+            "id": "8db3f26e37d3adbb0df43da3bf0b8f6a",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "name": "✓ questionId exists",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ questionId exists",
+            "id": "997823fb720ece441fa3b620bb1afbe5",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "id": "6e71c6c27b940fc6532824aae56c0a83",
+            "passes": 1,
+            "fails": 0,
+            "name": "✓ sourceQuestionId matches request",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ sourceQuestionId matches request"
+          },
+          {
+            "name": "✓ operation is created",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ operation is created",
+            "id": "edfd05a9db91ff4254a23b38fccbb274",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "name": "✓ taxonomyRelationshipsCount exists",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ taxonomyRelationshipsCount exists",
+            "id": "671a11b0c3ed418f141af57e75d0778f",
+            "passes": 1,
+            "fails": 0
+          },
+          {
+            "fails": 0,
+            "name": "✓ header X-Operation exists",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ header X-Operation exists",
+            "id": "b5f47e9282224179eeab4b92fa04680c",
+            "passes": 1
+          },
+          {
+            "name": "✓ header X-Question-Id exists",
+            "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)::✓ header X-Question-Id exists",
+            "id": "d1b7b085b80aeec5a1563ff936979da4",
+            "passes": 1,
+            "fails": 0
+          }
+        ],
+        "name": "Happy Path - Create New MCQ Question (Minimal Taxonomy)",
+        "path": "::Happy Path - Create New MCQ Question (Minimal Taxonomy)",
+        "id": "106a68f926fd5bb4f1a8c46d8796e4a9",
+        "groups": []
+      },
+      {
+        "groups": [],
+        "checks": [
+            {
+              "name": "✓ status is 200 OK",
+              "path": "::Happy Path - Create True/False Question::✓ status is 200 OK",
+              "id": "eb17b3aea97a7c470bf60145a94ffeae",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "name": "✓ success is true",
+              "path": "::Happy Path - Create True/False Question::✓ success is true",
+              "id": "8ab3d6e2d133c417a3dfe33b296aacbb",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "name": "✓ operation is created",
+              "path": "::Happy Path - Create True/False Question::✓ operation is created",
+              "id": "d761904cab0dc87856ec667a56c8c05c",
+              "passes": 1,
+              "fails": 0
+            }
+          ],
+        "name": "Happy Path - Create True/False Question",
+        "path": "::Happy Path - Create True/False Question",
+        "id": "f0dfcf3df18c8d7c62965b777f68aa7a"
+      },
+      {
+        "groups": [],
+        "checks": [
+            {
+              "name": "✓ status is 200 OK",
+              "path": "::Happy Path - Create Essay Question::✓ status is 200 OK",
+              "id": "df88951bf1ce62f3e2b0cd8cc014b451",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "id": "0b9810bfc1e28e042b69ead22aac714f",
+              "passes": 1,
+              "fails": 0,
+              "name": "✓ success is true",
+              "path": "::Happy Path - Create Essay Question::✓ success is true"
+            },
+            {
+              "name": "✓ operation is created",
+              "path": "::Happy Path - Create Essay Question::✓ operation is created",
+              "id": "4cd1deaaae640337c3a6fc5f780bd6af",
+              "passes": 1,
+              "fails": 0
+            }
+          ],
+        "name": "Happy Path - Create Essay Question",
+        "path": "::Happy Path - Create Essay Question",
+        "id": "53b195fcc1299c82c12babe1edbb47d3"
+      },
+      {
+        "name": "Happy Path - Create New MCQ Question (Full Taxonomy)",
+        "path": "::Happy Path - Create New MCQ Question (Full Taxonomy)",
+        "id": "1992bf2faf332fa685971f91a8a55b2d",
+        "groups": [],
+        "checks": [
+            {
+              "name": "✓ status is 200 OK",
+              "path": "::Happy Path - Create New MCQ Question (Full Taxonomy)::✓ status is 200 OK",
+              "id": "a4d4fbe64e240331d0748d1529e7599b",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "path": "::Happy Path - Create New MCQ Question (Full Taxonomy)::✓ success is true",
+              "id": "393c2b38075b6ef73124aee5700e9f06",
+              "passes": 1,
+              "fails": 0,
+              "name": "✓ success is true"
+            },
+            {
+              "name": "✓ operation is created",
+              "path": "::Happy Path - Create New MCQ Question (Full Taxonomy)::✓ operation is created",
+              "id": "1f93c3f49cc06072ebade9101ee76bc1",
+              "passes": 1,
+              "fails": 0
+            },
+            {
+              "name": "✓ taxonomy relationships count > 0",
+              "path": "::Happy Path - Create New MCQ Question (Full Taxonomy)::✓ taxonomy relationships count > 0",
+              "id": "8ee3c0c7f9833a8adad0a3a01854d7de",
+              "passes": 1,
+              "fails": 0
+            }
+          ]
+      }
+    ],
+    "checks": [],
+    "name": "",
+    "path": ""
+  },
+  "options": {
+    "summaryTimeUnit": "",
+    "noColor": false,
+    "summaryTrendStats": [
+      "avg",
+      "min",
+      "med",
+      "max",
+      "p(90)",
+      "p(95)"
+    ]
+  },
+  "state": {
+    "isStdOutTTY": true,
+    "isStdErrTTY": true,
+    "testRunDurationMs": 169.372549
+  },
+  "metrics": {
+    "http_req_sending": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.037534,
+        "min": 0.012611,
+        "med": 0.0348375,
+        "max": 0.06785,
+        "p(90)": 0.0601982,
+        "p(95)": 0.06402409999999999
+      }
+    },
+    "iterations": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1,
+        "rate": 5.904144478571908
+      }
+    },
+    "http_req_connecting": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.0306095,
+        "min": 0,
+        "med": 0,
+        "max": 0.122438,
+        "p(90)": 0.08570660000000002,
+        "p(95)": 0.10407229999999996
+      }
+    },
+    "http_req_tls_handshaking": {
+      "contains": "time",
+      "values": {
+        "avg": 0,
+        "min": 0,
+        "med": 0,
+        "max": 0,
+        "p(90)": 0,
+        "p(95)": 0
+      },
+      "type": "trend"
+    },
+    "checks": {
+      "thresholds": {
+        "rate == 1.00": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 22,
+        "fails": 0
+      }
+    },
+    "http_req_failed": {
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "passes": 0,
+        "fails": 4,
+        "rate": 0
+      }
+    },
+    "http_req_duration{expected_response:true}": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 41.891527499999995,
+        "min": 28.997265,
+        "med": 34.77964,
+        "max": 69.009565,
+        "p(90)": 59.0634688,
+        "p(95)": 64.03651689999998
+      }
+    },
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "med": 34.77964,
+        "max": 69.009565,
+        "p(90)": 59.0634688,
+        "p(95)": 64.03651689999998,
+        "avg": 41.891527499999995,
+        "min": 28.997265
+      }
+    },
+    "http_req_blocked": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(95)": 0.18535929999999995,
+        "avg": 0.059266,
+        "min": 0.003264,
+        "med": 0.0091845,
+        "max": 0.215431,
+        "p(90)": 0.15528760000000005
+      }
+    },
+    "data_sent": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 4349,
+        "rate": 25677.12433730923
+      }
+    },
+    "http_req_receiving": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 0.46221450000000003,
+        "min": 0.289916,
+        "med": 0.413053,
+        "max": 0.732836,
+        "p(90)": 0.6504539,
+        "p(95)": 0.6916449499999999
+      }
+    },
+    "group_duration": {
+      "values": {
+        "min": 29.255277,
+        "med": 35.067114000000004,
+        "max": 69.851747,
+        "p(90)": 59.74216070000001,
+        "p(95)": 64.79695385,
+        "avg": 42.31031300000001
+      },
+      "type": "trend",
+      "contains": "time"
+    },
+    "data_received": {
+      "type": "counter",
+      "contains": "data",
+      "values": {
+        "count": 1656,
+        "rate": 9777.26325651508
+      }
+    },
+    "iteration_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 169.303265,
+        "min": 169.303265,
+        "med": 169.303265,
+        "max": 169.303265,
+        "p(90)": 169.303265,
+        "p(95)": 169.303265
+      }
+    },
+    "http_req_waiting": {
+      "contains": "time",
+      "values": {
+        "p(95)": 63.640070849999994,
+        "avg": 41.391779,
+        "min": 28.561538,
+        "med": 34.1641365,
+        "max": 68.677305,
+        "p(90)": 58.60283670000001
+      },
+      "type": "trend"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 4,
+        "rate": 23.61657791428763
+      }
+    }
+  }
+}

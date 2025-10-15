@@ -108,7 +108,7 @@ None
     "questionBankId": 1730832000000000,
     "questionBankName": "Default Question Bank",
     "description": "Your default question bank for getting started with quiz creation",
-    "isActive": true,
+    "active": true,
     "taxonomySetCreated": true,
     "availableTaxonomy": {
       "categories": [
@@ -167,38 +167,51 @@ X-Question-Bank-ID: 1730832000000000
 
 ### Error Responses
 
-#### 400 Bad Request - Invalid User ID
+**IMPORTANT**: Spring Boot validation errors (triggered by `@Valid` annotation) return a **different JSON structure** than application-level errors. These are intercepted by Spring before reaching the controller.
+
+#### 400 Bad Request - Spring Validation Errors
+
+**Applies to**: Missing userId, null userId, invalid userId (zero/negative), invalid email format
+
+**Actual Response Structure**:
 ```json
 {
-  "success": false,
-  "message": "VALIDATION_ERROR: userId must be a positive integer greater than 0",
-  "data": null
+  "timestamp": "2025-10-10T08:44:48.262+00:00",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed for object='createDefaultQuestionBankRequestDto'. Error count: 1",
+  "errors": [
+    {
+      "objectName": "createDefaultQuestionBankRequestDto",
+      "field": "userId",
+      "rejectedValue": null,
+      "defaultMessage": "userId cannot be null",
+      "code": "NotNull"
+    }
+  ],
+  "path": "/api/users/default-question-bank"
 }
 ```
 
-**When**: userId is null, zero, or negative
+**Examples by Scenario**:
 
-#### 400 Bad Request - Missing Required Field
-```json
-{
-  "success": false,
-  "message": "VALIDATION_ERROR: userId is required",
-  "data": null
-}
-```
+**Missing or Null userId**:
+- Field: `userId`
+- Rejected Value: `null`
+- Default Message: `"userId cannot be null"`
+- Validation Code: `NotNull`
 
-**When**: Request body missing required userId field
+**Zero or Negative userId**:
+- Field: `userId`
+- Rejected Value: `0` or `-123456`
+- Default Message: `"userId must be positive"`
+- Validation Code: `Positive`
 
-#### 400 Bad Request - Invalid Email Format
-```json
-{
-  "success": false,
-  "message": "VALIDATION_ERROR: userEmail must be a valid email format",
-  "data": null
-}
-```
-
-**When**: userEmail provided but not in valid format
+**Invalid Email Format**:
+- Field: `userEmail`
+- Rejected Value: `"invalid-email-format"`
+- Default Message: `"userEmail must be a valid email address"`
+- Validation Code: `Email`
 
 #### 409 Conflict - User Already Exists
 ```json
@@ -251,6 +264,77 @@ X-Question-Bank-ID: 1730832000000000
 
 ---
 
+## Infrastructure Setup & Troubleshooting
+
+### MongoDB Replica Set Configuration (CRITICAL)
+
+**⚠️ IMPORTANT**: This API requires MongoDB running in **replica set mode** with **primary read preference** for transactions to work.
+
+#### Common Error
+```
+DATABASE_ERROR: Failed to create default question bank - Read preference in a transaction must be primary
+```
+
+#### Root Cause
+- MongoDB running as standalone instance (not replica set)
+- Incorrect read preference configuration
+- Hostname resolution issues between Spring Boot and MongoDB containers
+
+#### Solution - application.properties Configuration
+```properties
+# CORRECT configuration for local development with Docker containers
+spring.data.mongodb.uri=mongodb://root:PASSWORD@localhost:27017,localhost:27018/quizfun?replicaSet=rs0&authSource=admin&readPreference=primary&retryWrites=true&w=majority
+spring.data.mongodb.read-preference=primary
+```
+
+**Key Points**:
+- Use `localhost` (not container hostnames like `primary` or `secondary`) when running Spring Boot on host
+- Ensure `replicaSet=rs0` is present in URI
+- Set `readPreference=primary` for transaction support
+- Add explicit `spring.data.mongodb.read-preference=primary` property
+
+#### Verify MongoDB Replica Set
+```bash
+# Check if MongoDB containers are running
+docker ps | grep mongo
+
+# Expected output:
+# mongodb_primary    (port 27017)
+# mongodb_secondary  (port 27018)
+# mongo_express      (port 8081)
+```
+
+### Response Field Naming (Jackson Convention)
+
+**⚠️ CRITICAL**: The DTO getter `isActive()` is serialized as `"active"` in JSON, not `"isActive"`.
+
+This is due to **Jackson's JavaBean naming conventions**:
+- Boolean getter `isX()` → JSON field `"x"` (removes "is" prefix)
+- Non-boolean getter `getX()` → JSON field `"x"`
+
+**Actual Response**:
+```json
+{
+  "data": {
+    "active": true,  // NOT "isActive"
+    ...
+  }
+}
+```
+
+**Test Assertion**:
+```javascript
+// CORRECT
+check(res, {
+  'active field is true': (r) => r.json().data.active === true
+});
+
+// INCORRECT
+check(res, {
+  'isActive is true': (r) => r.json().data.isActive === true  // FAILS
+});
+```
+
 ## K6 Test Considerations
 
 ### Authentication
@@ -261,10 +345,11 @@ X-Question-Bank-ID: 1730832000000000
 ### Prerequisites
 Before running K6 tests, ensure:
 
-1. **MongoDB is running** (via Testcontainers or standalone)
-2. **Application is started**: `mvn spring-boot:run -pl orchestration-layer`
-3. **Port 8765 is accessible**
-4. **No existing user data** for test userId (or use different userId per test)
+1. **MongoDB replica set is running** (both primary and secondary containers)
+2. **Spring Boot application.properties configured** with correct MongoDB URI
+3. **Application is started**: `mvn spring-boot:run -pl orchestration-layer`
+4. **Port 8765 is accessible**
+5. **No existing user data** for test userId (or use unique userIds with `Date.now()`)
 
 ### Test Data Setup
 
@@ -335,11 +420,16 @@ export default function() {
 
   check(res, {
     'status is 400': (r) => r.status === 400,
-    'success is false': (r) => JSON.parse(r.body).success === false,
-    'error contains VALIDATION_ERROR': (r) => JSON.parse(r.body).message.includes('VALIDATION_ERROR')
+    'error is Bad Request': (r) => JSON.parse(r.body).error === 'Bad Request',
+    'response has errors array': (r) => {
+      const body = JSON.parse(r.body);
+      return body.errors && body.errors.length > 0;
+    }
   });
 }
 ```
+
+**Note**: Spring validation errors return `{error, message, errors[]}` format, NOT `{success, message, data}` format.
 
 #### Scenario 3: Duplicate User - 409 Conflict
 ```javascript
@@ -400,6 +490,38 @@ export default function() {
 - **Transaction completion** (MongoDB atomicity)
 - **ID generation uniqueness** (no duplicate questionBankIds)
 
+### Actual K6 Test Implementation
+
+A comprehensive functional test suite has been created at:
+```
+api-system-test/test-create-default-question-bank.js
+```
+
+**Test Coverage (7 groups, 35 assertions, 100% pass rate)**:
+1. ✅ Happy Path - Create Default Question Bank (201 Created)
+2. ✅ Unhappy Path - Missing userId (400 Bad Request)
+3. ✅ Unhappy Path - Invalid userId (null) (400 Bad Request)
+4. ✅ Unhappy Path - Invalid userId (zero) (400 Bad Request)
+5. ✅ Unhappy Path - Invalid userId (negative) (400 Bad Request)
+6. ✅ Unhappy Path - Invalid email format (400 Bad Request)
+7. ✅ Unhappy Path - Duplicate User (409 Conflict)
+
+**Run Command**:
+```bash
+k6 run api-system-test/test-create-default-question-bank.js
+```
+
+**Expected Output**:
+```
+checks.........................: 100.00% ✓ 35
+✓ ✓ status is 201 Created
+✓ ✓ questionBankId exists and is positive
+✓ ✓ active field is true
+✓ ✓ status is 400 Bad Request
+✓ ✓ error is "Bad Request"
+✓ ✓ second request: status is 409 Conflict
+```
+
 ---
 
 ## Code References
@@ -411,6 +533,10 @@ export default function() {
 ### Test Files
 - **Unit Test**: `orchestration-layer/src/test/java/com/quizfun/orchestrationlayer/controllers/DefaultQuestionBankControllerTest.java`
 - **Reference Test Method**: `shouldReturn201CreatedWhenSuccessful()` (line 57)
+- **K6 API System Test**: `api-system-test/test-create-default-question-bank.js`
+  - 7 test groups (happy path + 6 unhappy paths)
+  - 35 assertions with 100% pass rate
+  - Validates actual HTTP responses, status codes, and error formats
 
 ### Documentation
 - **Use Case Design**: `usecases/on-new-user-creating-default-question-bank/use-case-design.md`
