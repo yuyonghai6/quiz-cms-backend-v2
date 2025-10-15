@@ -6,6 +6,13 @@ target/
 # allure
 .allure/
 
+# K6 Test Reports
+summary-report.html
+summary-data.json
+api-system-test/reports/*.html
+api-system-test/reports/*.json
+!api-system-test/reports/.gitkeep
+
 
 ### IntelliJ IDEA ###
 .idea/modules.xml

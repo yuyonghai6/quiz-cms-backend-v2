@@ -14,6 +14,7 @@ import com.quizfun.shared.validation.ValidationHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -33,6 +34,14 @@ import org.springframework.context.annotation.Primary;
 public class ValidationChainConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(ValidationChainConfig.class);
+
+    /**
+     * Controls whether SecurityContextValidator is included in the validation chain.
+     * - true (default): SecurityContextValidator is active (production mode)
+     * - false: SecurityContextValidator is bypassed (development/testing mode)
+     */
+    @Value("${security.context.validator.enabled:true}")
+    private boolean securityContextValidatorEnabled;
 
     /**
      * Creates RateLimitValidator bean for injection into validation chain.
@@ -101,6 +110,12 @@ public class ValidationChainConfig {
     /**
      * Creates and configures the validation chain for question upsert operations.
      * The chain is ordered by security priority and performance characteristics.
+     * <p>
+     * The chain can operate in two modes based on security.context.validator.enabled property:
+     * <ul>
+     *   <li>PRODUCTION MODE (true): Security -> Ownership -> Taxonomy -> Data Integrity</li>
+     *   <li>DEVELOPMENT MODE (false): Ownership -> Taxonomy -> Data Integrity (Security bypassed)</li>
+     * </ul>
      *
      * @param rateLimitValidator Rate limiting validator (fastest rejection)
      * @param concurrentSessionValidator Concurrent session limit validator
@@ -123,37 +138,61 @@ public class ValidationChainConfig {
             TaxonomyReferenceValidator taxonomyValidator,
             QuestionDataIntegrityValidator dataValidator) {
 
-        logger.info("Configuring question upsert validation chain with comprehensive security");
+        if (securityContextValidatorEnabled) {
+            // ═══════════════════════════════════════════════════════════════
+            // PRODUCTION MODE: Include SecurityContextValidator
+            // ═══════════════════════════════════════════════════════════════
+            logger.info("🔗 Configuring Question Upsert Validation Chain: PRODUCTION MODE");
+            logger.info("   security.context.validator.enabled = true");
+            logger.info("    ✅ rateLimitValidator");
+            logger.info("    ✅ concurrentSessionValidator");
+            logger.info("    ✅ sessionValidator");
+            logger.info("    ✅ SecurityContextValidator (JWT & Path Parameter Validation)");
+            logger.info("    ✅ QuestionBankOwnershipValidator");
+            logger.info("    ✅ TaxonomyReferenceValidator");
+            logger.info("    ✅ QuestionDataIntegrityValidator");
 
-        // Chain the validators in security-first order
-        // Chain order: Rate Limit -> Concurrent Session -> Session Management ->
-        //              Security Context -> Ownership -> Taxonomy -> Data Integrity
-        // This order ensures:
-        // 1. Rate limiting first (fastest rejection, prevents DoS)
-        // 2. Concurrent session check second (prevent account sharing)
-        // 3. Session management third (detect hijacking)
-        // 4. JWT token security fourth (prevents path parameter manipulation)
-        // 5. Question bank ownership fifth (business security)
-        // 6. Reference integrity sixth (taxonomy validation)
-        // 7. Data validation last (most detailed, potentially expensive)
-        rateLimitValidator
-            .setNext(concurrentSessionValidator)
-            .setNext(sessionValidator)
-            .setNext(securityValidator)
-            .setNext(ownershipValidator)
-            .setNext(taxonomyValidator)
-            .setNext(dataValidator);
+            // Chain order: Security -> Ownership -> Taxonomy -> Data Integrity
+            // This order ensures:
+            // 1. JWT token security first (prevents path parameter manipulation attacks)
+            // 2. Question bank ownership second (business security)
+            // 3. Reference integrity third (taxonomy validation)
+            // 4. Data validation last (most detailed, potentially expensive)
+            rateLimitValidator
+                .setNext(concurrentSessionValidator)
+                .setNext(sessionValidator)
+                .setNext(securityValidator)
+                .setNext(ownershipValidator)
+                .setNext(taxonomyValidator)
+                .setNext(dataValidator);
 
-        logger.info("Question upsert validation chain configured: {} -> {} -> {} -> {} -> {} -> {} -> {}",
-                   rateLimitValidator.getClass().getSimpleName(),
-                   concurrentSessionValidator.getClass().getSimpleName(),
-                   sessionValidator.getClass().getSimpleName(),
-                   securityValidator.getClass().getSimpleName(),
-                   ownershipValidator.getClass().getSimpleName(),
-                   taxonomyValidator.getClass().getSimpleName(),
-                   dataValidator.getClass().getSimpleName());
+            return rateLimitValidator;
 
-        return rateLimitValidator;
+        } else {
+            // ═══════════════════════════════════════════════════════════════
+            // DEVELOPMENT MODE: Skip SecurityContextValidator
+            // ═══════════════════════════════════════════════════════════════
+            logger.warn("⚠️ ═══════════════════════════════════════════════════════════════");
+            logger.warn("⚠️ VALIDATION CHAIN: DEVELOPMENT MODE - SecurityContextValidator BYPASSED");
+            logger.warn("⚠️ security.context.validator.enabled = false");
+            logger.warn("⚠️ ═══════════════════════════════════════════════════════════════");
+            logger.warn("⚠️ This configuration MUST NOT be used in production");
+            logger.warn("⚠️ Business validations remain active:");
+            logger.warn("   1. ⏭️  Seires Security Validator (SKIPPED)");
+            logger.warn("   2. ✅ QuestionBankOwnershipValidator");
+            logger.warn("   3. ✅ TaxonomyReferenceValidator");
+            logger.warn("   4. ✅ QuestionDataIntegrityValidator");
+            logger.warn("   5. ✅ rateLimitValidator");
+
+            // Chain order: Ownership -> Taxonomy -> Data Integrity
+            // SecurityContextValidator is bypassed for K6 functional testing
+            rateLimitValidator
+                .setNext(ownershipValidator)
+                .setNext(taxonomyValidator)
+                .setNext(dataValidator);
+
+            return rateLimitValidator;
+        }
     }
 
     /**

@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -89,7 +88,7 @@ public class QuestionApplicationService {
     )
     public Result<QuestionResponseDto> upsertQuestion(UpsertQuestionCommand command) {
         Instant startTime = Instant.now();
-
+        logger.warn("upsertQuestion method start in QuestionApplicationService.java");
         try {
             logger.info("Starting question upsert process for source ID: {} by user: {} in question bank: {}",
                        command.getSourceQuestionId(), command.getUserId(), command.getQuestionBankId());
@@ -108,7 +107,7 @@ public class QuestionApplicationService {
 
             logger.debug("Validation chain passed for source ID: {}", command.getSourceQuestionId());
             recordValidationSuccess();
-
+            logger.warn("upsertQuestion before step 2 in QuestionApplicationService.java");
             // Step 2: Process question using Strategy Pattern
             logger.debug("Processing question data using strategy for type: {} and source ID: {}",
                         command.getQuestionType(), command.getSourceQuestionId());
@@ -127,6 +126,9 @@ public class QuestionApplicationService {
             var questionAggregate = questionAggregateResult.getValue();
             logger.debug("Successfully processed question data for source ID: {} using {} strategy",
                         command.getSourceQuestionId(), strategy.getStrategyName());
+            logger.warn("questionAggregate inside QuestionApplicationService.java",questionAggregate.toString());
+            logger.warn("questionAggregate getDisplayOrder inside QuestionApplicationService.java",questionAggregate.getDisplayOrder());
+            logger.warn("questionAggregate getSolutionExplanation inside QuestionApplicationService.java",questionAggregate.getSolutionExplanation());
 
             recordStrategySuccess(command.getQuestionType().toString());
 
@@ -137,6 +139,42 @@ public class QuestionApplicationService {
                 return Result.failure("INVALID_AGGREGATE", "Strategy produced invalid question aggregate");
             }
 
+            // If an existing question is present and the command omitted certain metadata fields,
+            // preserve those values from the existing aggregate to avoid nulling them out during updates.
+            try {
+                logger.warn("display order inside QuestionApplicationService.java, top of try 2",questionAggregate.getDisplayOrder());
+                var existingResult = questionRepository.findBySourceQuestionId(
+                    command.getUserId(), command.getQuestionBankId(), command.getSourceQuestionId());
+                if (existingResult != null && existingResult.isSuccess() && existingResult.getValue().isPresent()) {
+                    var existing = existingResult.getValue().get();
+
+                    // Preserve status only when the command did not provide one
+                    if (command.getStatus() == null && existing.getStatus() != null
+                        && (questionAggregate.getStatus() == null || !existing.getStatus().equals(questionAggregate.getStatus()))) {
+                        questionAggregate.updateStatusAndMetadata(existing.getStatus(), null, null);
+                        logger.debug("Preserved existing status '{}' for source ID: {}", existing.getStatus(), command.getSourceQuestionId());
+                    }
+                    logger.warn("display order inside QuestionApplicationService.java",questionAggregate.getDisplayOrder());
+                    // Preserve displayOrder if not provided in command (aggregate field still null)
+                    if (questionAggregate.getDisplayOrder() == null && existing.getDisplayOrder() != null) {
+                        questionAggregate.updateStatusAndMetadata(null, existing.getDisplayOrder(), null);
+                        logger.debug("Preserved existing displayOrder '{}' for source ID: {}", existing.getDisplayOrder(), command.getSourceQuestionId());
+                    }
+
+                    logger.warn("solution explanation inside QuestionApplicationService.java",questionAggregate.getSolutionExplanation());
+                    // Preserve solutionExplanation if not provided in command (aggregate field still null)
+                    if (questionAggregate.getSolutionExplanation() == null && existing.getSolutionExplanation() != null) {
+                        questionAggregate.updateStatusAndMetadata(null, null, existing.getSolutionExplanation());
+                        logger.debug("Preserved existing solutionExplanation for source ID: {}", command.getSourceQuestionId());
+                    }
+                }
+            } catch (Exception mergeEx) {
+                // Non-fatal: if merge fails, continue with current aggregate; repository upsert will still proceed
+                logger.warn("Metadata merge step encountered an issue for source ID: {}: {}",
+                    command.getSourceQuestionId(), mergeEx.getMessage());
+            }
+
+            logger.warn("upsertQuestion before step 3 in QuestionApplicationService.java");
             // Step 3: Instantiate QuestionAggregate object and store to MongoDB
             logger.debug("Upserting question aggregate for source ID: {}", command.getSourceQuestionId());
 

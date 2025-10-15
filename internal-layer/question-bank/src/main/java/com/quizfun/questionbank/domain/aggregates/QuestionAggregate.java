@@ -178,6 +178,9 @@ public class QuestionAggregate extends AggregateRoot {
 
     public void updateStatusAndMetadata(String status, Integer displayOrder, String solutionExplanation) {
         var updatedFields = new java.util.ArrayList<String>();
+        String originalStatus = this.status;
+        Integer originalDisplayOrder = this.displayOrder;
+        String originalSolutionExplanation = this.solutionExplanation;
 
         if (status != null && !status.equals(this.status)) {
             this.status = status;
@@ -194,8 +197,21 @@ public class QuestionAggregate extends AggregateRoot {
 
         // Only generate event and update timestamp if something actually changed
         if (!updatedFields.isEmpty()) {
-            markUpdatedNow();
-            generateUpdateEvent(updatedFields);
+            boolean isInitialState = getCreatedAt() != null
+                && getUpdatedAt() != null
+                && getCreatedAt().equals(getUpdatedAt());
+            boolean statusChanged = !java.util.Objects.equals(originalStatus, this.status);
+            boolean displayOrderChanged = !java.util.Objects.equals(originalDisplayOrder, this.displayOrder);
+            boolean solutionExplanationChanged = !java.util.Objects.equals(originalSolutionExplanation, this.solutionExplanation);
+
+            boolean onlyInitialMetadata = isInitialState
+                && !statusChanged
+                && (displayOrderChanged || solutionExplanationChanged);
+
+            if (!onlyInitialMetadata) {
+                markUpdatedNow();
+                generateUpdateEvent(updatedFields);
+            }
         }
     }
 

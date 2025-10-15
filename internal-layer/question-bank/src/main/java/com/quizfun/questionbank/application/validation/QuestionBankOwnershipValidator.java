@@ -57,6 +57,8 @@ public class QuestionBankOwnershipValidator extends ValidationHandler {
 
         try {
             // Validate ownership with retry mechanism for temporary failures
+            logger.warn("upsertcommand get user id: {}", upsertCommand.getUserId());
+            logger.warn("upsertcommand get question bank id: {}", upsertCommand.getQuestionBankId());
             Result<Boolean> ownershipResult = retryHelper.executeWithRetry(
                 () -> questionBanksPerUserRepository.validateOwnership(
                     upsertCommand.getUserId(),
@@ -93,7 +95,7 @@ public class QuestionBankOwnershipValidator extends ValidationHandler {
 
                 return Result.failure(
                     ValidationErrorCode.UNAUTHORIZED_ACCESS.name(),
-                    String.format("User %d doesn't own question bank %d",
+                    String.format("UNAUTHORIZED_ACCESS: User %d doesn't own question bank %d",
                                 upsertCommand.getUserId(), upsertCommand.getQuestionBankId())
                 );
             }
@@ -134,7 +136,7 @@ public class QuestionBankOwnershipValidator extends ValidationHandler {
 
                 return Result.failure(
                     ValidationErrorCode.UNAUTHORIZED_ACCESS.name(),
-                    String.format("Question bank %d is not active for user %d",
+                    String.format("UNAUTHORIZED_ACCESS: Question bank %d is not active for user %d",
                                 upsertCommand.getQuestionBankId(), upsertCommand.getUserId())
                 );
             }

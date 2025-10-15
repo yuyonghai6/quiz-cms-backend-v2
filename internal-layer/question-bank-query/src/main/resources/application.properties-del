@@ -1,0 +1,5 @@
+spring.data.mongodb.uri=mongodb://localhost:27017/quizfun-query
+spring.data.mongodb.read-preference=primary
+spring.application.name=question-bank-query
+logging.level.org.springframework.data.mongodb=INFO
+logging.level.com.quizfun.questionbankquery=INFO

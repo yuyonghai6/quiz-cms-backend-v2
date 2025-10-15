@@ -2,15 +2,6 @@ package com.quizfun.questionbank.config;
 
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoClient;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ConnectionString;
-import com.mongodb.connection.ConnectionPoolSettings;
-import com.mongodb.connection.ServerSettings;
-import com.mongodb.connection.SocketSettings;
-import org.bson.Document;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.containers.output.Slf4jLogConsumer;
-import java.time.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.quizfun.questionbank.application.ports.out.QuestionBanksPerUserRepository;
@@ -18,7 +9,6 @@ import com.quizfun.questionbank.application.ports.out.TaxonomySetRepository;
 import com.quizfun.shared.common.Result;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.ComponentScan.Filter;
@@ -34,6 +24,7 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.ActiveProfiles;
 
 @SpringBootConfiguration // Clear intent
 @EnableAutoConfiguration(exclude = {
@@ -56,18 +47,27 @@ import org.testcontainers.junit.jupiter.Testcontainers;
         "com.quizfun.globalshared"
     },
     excludeFilters = {
-        @Filter(type = FilterType.ASSIGNABLE_TYPE, value = com.quizfun.questionbank.infrastructure.configuration.MongoTransactionConfig.class)
+        @Filter(type = FilterType.ASSIGNABLE_TYPE, value = com.quizfun.questionbank.infrastructure.configuration.MongoTransactionConfig.class),
+        // Exclude production index configuration to avoid conflicts with test-specific indexes
+        @Filter(type = FilterType.ASSIGNABLE_TYPE, value = com.quizfun.questionbank.infrastructure.configuration.MongoIndexConfig.class),
+        // Exclude the main QuestionBankConfiguration to prevent it from re-scanning the entire package
+        // which would bring back excluded beans like MongoIndexConfig
+        @Filter(type = FilterType.ASSIGNABLE_TYPE, value = com.quizfun.questionbank.infrastructure.configuration.QuestionBankConfiguration.class)
     }
 )
 @Testcontainers
+@ActiveProfiles("test")
 public class TestContainersConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(TestContainersConfig.class);
 
+    @SuppressWarnings("resource")
     @Container
     static MongoDBContainer mongoContainer = new MongoDBContainer("mongo:8.0")
-            .withExposedPorts(27017)
-            .withReuse(false);
+        // Do NOT override exposed ports; MongoDB listens on 27017 internally.
+        // Testcontainers will map it to a random available host port and
+        // getReplicaSetUrl() will point Spring to the correct host:port.
+        .withReuse(false);
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
@@ -109,11 +109,97 @@ public class TestContainersConfig {
                        "Connection URL: {}, Database: quiz_cms_test",
                        mongoContainer.getReplicaSetUrl());
 
+            // Create indexes programmatically for test environment
+            createTestIndexes(testMongoTemplate(databaseFactory));
+
             return transactionManager;
 
         } catch (Exception e) {
             logger.error("Failed to configure MongoDB transaction manager for test environment", e);
             throw new RuntimeException("Failed to configure test transaction manager", e);
+        }
+    }
+
+    /**
+     * Creates indexes programmatically for test environment.
+     *
+     * This ensures test environment has same index structure as production,
+     * validating that queries and upsert operations behave correctly.
+     */
+    private void createTestIndexes(MongoTemplate mongoTemplate) {
+        logger.info("Creating indexes for test environment");
+
+        try {
+            // Questions collection indexes
+            // Ensure indexes via Mongo driver for compatibility with Mongo 8 and to support partial unique indexes
+
+            // Create partial unique index using Mongo driver to avoid duplicates for docs without these fields
+            var questionsCollection = mongoTemplate.getDb().getCollection("questions");
+            org.bson.Document partialFilter = new org.bson.Document()
+                .append("user_id", new org.bson.Document("$exists", true))
+                .append("question_bank_id", new org.bson.Document("$exists", true))
+                .append("source_question_id", new org.bson.Document("$exists", true));
+
+            questionsCollection.createIndex(
+                com.mongodb.client.model.Indexes.compoundIndex(
+                    com.mongodb.client.model.Indexes.ascending("user_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_bank_id"),
+                    com.mongodb.client.model.Indexes.ascending("source_question_id")
+                ),
+                new com.mongodb.client.model.IndexOptions()
+                    .name("ux_user_bank_source_id")
+                    .unique(true)
+                    .partialFilterExpression(partialFilter)
+            );
+
+            // Performance index for listing
+            questionsCollection.createIndex(
+                com.mongodb.client.model.Indexes.compoundIndex(
+                    com.mongodb.client.model.Indexes.ascending("user_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_bank_id"),
+                    com.mongodb.client.model.Indexes.ascending("status")
+                ),
+                new com.mongodb.client.model.IndexOptions().name("ix_user_bank_status")
+            );
+
+            // Question taxonomy relationships indexes
+            var relCollection = mongoTemplate.getDb().getCollection("question_taxonomy_relationships");
+
+            // Unique relationship index (partial to ignore seed docs without these fields)
+            org.bson.Document relPartialFilter = new org.bson.Document()
+                .append("user_id", new org.bson.Document("$exists", true))
+                .append("question_bank_id", new org.bson.Document("$exists", true))
+                .append("question_id", new org.bson.Document("$exists", true))
+                .append("taxonomy_type", new org.bson.Document("$exists", true))
+                .append("taxonomy_id", new org.bson.Document("$exists", true));
+
+            relCollection.createIndex(
+                com.mongodb.client.model.Indexes.compoundIndex(
+                    com.mongodb.client.model.Indexes.ascending("user_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_bank_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_id"),
+                    com.mongodb.client.model.Indexes.ascending("taxonomy_type"),
+                    com.mongodb.client.model.Indexes.ascending("taxonomy_id")
+                ),
+                new com.mongodb.client.model.IndexOptions()
+                    .name("ux_user_bank_question_taxonomy")
+                    .unique(true)
+                    .partialFilterExpression(relPartialFilter)
+            );
+
+            // Query performance index
+            relCollection.createIndex(
+                com.mongodb.client.model.Indexes.compoundIndex(
+                    com.mongodb.client.model.Indexes.ascending("user_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_bank_id"),
+                    com.mongodb.client.model.Indexes.ascending("question_id")
+                ),
+                new com.mongodb.client.model.IndexOptions().name("ix_user_bank_question")
+            );
+
+            logger.info("Successfully created test indexes");
+        } catch (Exception e) {
+            logger.warn("Failed to create test indexes: {}", e.getMessage());
         }
     }
 
