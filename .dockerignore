@@ -1,0 +1,11 @@
+.git
+**/target
+**/.idea
+**/.project
+**/.classpath
+**/.settings
+**/.DS_Store
+**/node_modules
+**/.allure
+**/allure-results
+**/allure-report
