@@ -40,26 +40,26 @@ curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760
 
 ### 2. Filter by Category
 
-This retrieves questions categorized under "Math".
+This retrieves questions categorized under "general".
 
 ```bash
-curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?categories=Math"
+curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?categories=general"
 ```
 
 ### 3. Search by Text
 
-This retrieves questions containing the word "equation".
+This retrieves questions containing the word "Tell".
 
 ```bash
-curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?searchText=equation"
+curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?searchText=Tell"
 ```
 
 ### 4. Combined Filters
 
-This retrieves questions in the "Math" category, tagged with "algebra", and containing the word "solve". It returns a page size of 10.
+This retrieves questions in the "general" category, tagged with "beginner", and containing the word "testing". It returns a page size of 10.
 
 ```bash
-curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?categories=Math&tags=algebra&searchText=solve&page=0&size=10"
+curl "http://139.180.135.117:8765/api/v1/users/1760620095607/question-banks/1760620095622000/questions?categories=general&tags=beginner&searchText=testing&page=0&size=10"
 ```
 
 ## Responses
