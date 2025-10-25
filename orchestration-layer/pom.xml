@@ -29,13 +29,6 @@
         <java.version>21</java.version>
     </properties>
     <dependencies>
-        <!-- Internal module dependency -->
-        <dependency>
-            <groupId>com.quizfun</groupId>
-            <artifactId>internal-layer</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-
         <!-- Question bank module (direct dependency for command handlers) -->
         <dependency>
             <groupId>com.quizfun</groupId>
@@ -167,6 +160,13 @@
                         </exclude>
                     </excludes>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <groupId>io.qameta.allure</groupId>
