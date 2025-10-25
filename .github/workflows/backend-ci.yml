@@ -18,11 +18,8 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build backend
-        run: mvn clean package -DskipTests
-
-      - name: Run tests
-        run: mvn test
+      - name: Build backend and run tests
+        run: mvn clean package
 
       - name: Upload orchestration JAR
         uses: actions/upload-artifact@v4
