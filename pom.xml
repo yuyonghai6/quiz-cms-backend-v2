@@ -216,6 +216,12 @@
                         <suppressionFiles>
                             <suppressionFile>dependency-check-suppressions.xml</suppressionFile>
                         </suppressionFiles>
+                        <!-- NVD API Key configuration (optional but highly recommended) -->
+                        <!-- Get free API key: https://nvd.nist.gov/developers/request-an-api-key -->
+                        <!-- Pass via: mvn dependency-check:check -Dnvd.api.key=YOUR_KEY -->
+                        <!-- Or set environment variable: export NVD_API_KEY=YOUR_KEY -->
+                        <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                        <nvdApiDelay>2000</nvdApiDelay>
                     </configuration>
                     <executions>
                         <execution>

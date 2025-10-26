@@ -150,7 +150,20 @@ jobs:
           cache: 'maven'
 
       - name: Run OWASP Dependency-Check
-        run: mvn dependency-check:check -DskipTests
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: |
+          if [ -z "$NVD_API_KEY" ]; then
+            echo "⚠️ NVD_API_KEY not configured. OWASP Dependency-Check may fail due to NVD rate limits."
+            echo "To fix: Get free API key from https://nvd.nist.gov/developers/request-an-api-key"
+            echo "Then add it to GitHub Secrets as NVD_API_KEY"
+            echo ""
+            echo "Attempting scan without API key..."
+            mvn dependency-check:check -DskipTests
+          else
+            echo "✅ Using NVD API Key for enhanced rate limits"
+            mvn dependency-check:check -DskipTests -Dnvd.api.key=$NVD_API_KEY
+          fi
         continue-on-error: true
 
       - name: Upload OWASP report

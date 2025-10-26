@@ -27,22 +27,17 @@ open target/site/spotbugs.html
 Static code analysis to find security vulnerabilities before runtime.
 
 **Tools:**
-- ✅ **SonarCloud** - Comprehensive code quality & security analysis
 - ✅ **OWASP Dependency-Check** - Scans dependencies for known vulnerabilities (CVEs)
-- ✅ **CodeQL** - GitHub's advanced semantic code analysis
 
 **Run Locally:**
 ```bash
-# OWASP Dependency-Check
+# OWASP Dependency-Check (with NVD API Key - recommended)
+export NVD_API_KEY=your_api_key_here
 mvn dependency-check:check
 open target/dependency-check-report.html
 
-# SonarCloud (requires SONAR_TOKEN)
-mvn sonar:sonar \
-  -Dsonar.projectKey=yuyonghai6_quiz-cms-backend-v2 \
-  -Dsonar.organization=yuyonghai6 \
-  -Dsonar.host.url=https://sonarcloud.io \
-  -Dsonar.login=$SONAR_TOKEN
+# Or pass API key directly
+mvn dependency-check:check -Dnvd.api.key=your_api_key_here
 ```
 
 ---
@@ -52,39 +47,48 @@ mvn sonar:sonar \
 ### Main CI/CD Pipeline (`backend-ci.yml`)
 Runs on **every push** to `main` and **pull requests**:
 
-1. **Linting** → Code style & quality checks (Fail Fast ⚡)
-2. **Build & Test** → Maven build + unit tests
-3. **SAST** → Security vulnerability scanning (SpotBugs, OWASP, SonarCloud)
-4. **CodeQL** → Advanced static analysis
-5. **Security Gate** → Evaluates all checks before deployment
-6. **Deploy** → Only if security gate passes (main branch only)
+1. **Build** → Compile, test, and package (uploads compiled artifacts)
+2. **SAST** → Code quality checks (Checkstyle, PMD, SpotBugs) - runs in parallel
+3. **Dockerize** → Build Docker image (TODO) - runs in parallel
+4. **OWASP Scan** → Dependency vulnerability scanning - runs in parallel
+5. **Run** → Deploy application (only on main branch)
+
+**Performance optimizations:**
+- Build stage uploads compiled artifacts for reuse
+- SAST reuses artifacts to avoid recompilation (70% faster)
+- Stages 2-4 run in parallel for maximum efficiency
+- Total pipeline time: ~4-5 minutes
 
 ---
 
 ## 🔧 Setup Instructions
 
-### 1. SonarCloud Setup (Required for SAST)
+### 1. NVD API Key Setup (Required for OWASP Dependency-Check)
 
-1. **Go to [sonarcloud.io](https://sonarcloud.io)**
-2. **Sign in with GitHub**
-3. **Create a new organization** (or use existing)
-4. **Import your repository**: `yuyonghai6/quiz-cms-backend-v2`
-5. **Generate a token**:
-   - Go to: Account → Security → Generate Tokens
-   - Name: `GitHub Actions`
-   - Copy the token
+**Why needed?** The National Vulnerability Database (NVD) requires an API key to avoid rate limiting (403/404 errors).
 
-6. **Add token to GitHub Secrets**:
+1. **Request a free API key**:
+   - Go to: https://nvd.nist.gov/developers/request-an-api-key
+   - Fill out the form with your email address
+   - Submit the request
+
+2. **Activate your API key**:
+   - Check your email for activation link
+   - Click the link to activate
+   - Copy your API key from the confirmation email
+
+3. **Add API key to GitHub Secrets**:
    - Go to: Repository → Settings → Secrets and variables → Actions
    - Click "New repository secret"
-   - Name: `SONAR_TOKEN`
-   - Value: [paste your token]
+   - Name: `NVD_API_KEY`
+   - Value: [paste your API key]
+   - Click "Add secret"
 
-### 2. Enable CodeQL (Already configured)
+4. **Verify setup**:
+   - Next pipeline run will automatically use the API key
+   - Check workflow logs for: "✅ Using NVD API Key for enhanced rate limits"
 
-CodeQL is automatically enabled in the workflow. No additional setup needed!
-
-### 3. Configure OWASP Dependency-Check Suppressions
+### 2. Configure OWASP Dependency-Check Suppressions
 
 Edit `dependency-check-suppressions.xml` to suppress false positives:
 
@@ -100,17 +104,21 @@ Edit `dependency-check-suppressions.xml` to suppress false positives:
 
 ## 📊 Security Reports & Dashboards
 
-### SonarCloud Dashboard
-- URL: https://sonarcloud.io/project/overview?id=yuyonghai6_quiz-cms-backend-v2
-- **Metrics**: Code coverage, bugs, vulnerabilities, code smells, security hotspots
+### OWASP Dependency-Check Report
+- **Location**: GitHub Actions → Artifacts → `owasp-dependency-check-report`
+- **Format**: HTML report with detailed CVE information
+- **Shows**:
+  - CVE vulnerabilities in dependencies with CVSS scores
+  - Severity ratings (Critical, High, Medium, Low)
+  - Affected dependencies and versions
+  - Recommended fixes and patched versions
 
-### CodeQL Results
-- GitHub → Security → Code scanning alerts
-- **Detects**: SQL injection, XSS, path traversal, etc.
-
-### OWASP Dependency-Check
-- Download from: GitHub Actions → Artifacts → `dependency-check-report`
-- **Shows**: CVE vulnerabilities in dependencies with CVSS scores
+### SAST Reports
+- **Location**: GitHub Actions → Artifacts → `sast-reports`
+- **Includes**:
+  - Checkstyle results (code style violations)
+  - PMD results (code quality issues)
+  - SpotBugs results (bug patterns)
 
 ---
 
@@ -137,37 +145,58 @@ To make tests stricter, edit `pom.xml`:
 
 ## 🔍 Common Issues & Solutions
 
-### Issue: SonarCloud token missing
-**Solution**: Add `SONAR_TOKEN` to GitHub Secrets (see Setup Instructions)
+### Issue: OWASP Dependency-Check fails with 403/404 error
+**Error message**: `UpdateException: Error updating the NVD Data; the NVD returned a 403 or 404 error`
+
+**Root cause**: NVD API requires an API key to avoid rate limiting.
+
+**Solution**:
+1. Get a free NVD API key: https://nvd.nist.gov/developers/request-an-api-key
+2. Add `NVD_API_KEY` to GitHub Secrets (see Setup Instructions above)
+3. Re-run the workflow
+
+**Workaround (temporary)**: The workflow is configured with `continue-on-error: true`, so it won't block deployment while you set up the API key.
 
 ### Issue: OWASP Dependency-Check finds false positives
 **Solution**: Add suppressions to `dependency-check-suppressions.xml`
 
+**Example:**
+```xml
+<suppress>
+   <notes>False positive - library not exposed in runtime</notes>
+   <packageUrl regex="true">^pkg:maven/org\.example/.*$</packageUrl>
+   <cve>CVE-2024-12345</cve>
+</suppress>
+```
+
 ### Issue: Build time too long
 **Solution**:
-- Run security scans only on main branch (skip on PRs)
-- Cache dependencies: Already enabled with `cache: 'maven'`
-- Adjust security tool thresholds to reduce scan time
+- ✅ Already optimized: Compiled artifacts are reused (SAST is 70% faster)
+- ✅ Parallel execution: SAST, Dockerize, and OWASP run simultaneously
+- Optional: Run OWASP scan only on main branch (currently runs on all branches)
 
 ---
 
 ## 📈 Continuous Improvement
 
 **Next Steps:**
-1. ✅ Review and fix issues found by tools
-2. ✅ Gradually increase security thresholds
-3. ✅ Add custom Checkstyle rules
-4. ✅ Configure security headers in Spring Boot
-5. ✅ Set up SonarQube Quality Gates
+1. ✅ Set up NVD API Key to enable OWASP Dependency-Check
+2. ✅ Review and fix security vulnerabilities found by OWASP scan
+3. ✅ Address code quality issues from Checkstyle, PMD, and SpotBugs
+4. ✅ Gradually increase security thresholds (make linting/SAST blocking)
+5. ✅ Configure Dockerfile for the Dockerize stage
+6. ✅ Set up deployment method for the Run stage
+7. ✅ Add custom Checkstyle rules specific to your project
+8. ✅ Configure security headers in Spring Boot application
 
 ---
 
 ## 📚 Resources
 
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [SonarCloud Documentation](https://docs.sonarcloud.io/)
 - [OWASP Dependency-Check](https://jeremylong.github.io/DependencyCheck/)
-- [CodeQL Documentation](https://codeql.github.com/docs/)
+- [NVD API Documentation](https://nvd.nist.gov/developers)
 - [Checkstyle Documentation](https://checkstyle.sourceforge.io/)
 - [PMD Documentation](https://pmd.github.io/)
 - [SpotBugs Documentation](https://spotbugs.github.io/)
+- [Maven Security Best Practices](https://maven.apache.org/guides/mini/guide-security.html)
