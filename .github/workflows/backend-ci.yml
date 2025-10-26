@@ -7,42 +7,10 @@ on:
     branches: [ "main" ]
 
 jobs:
-  # STAGE 1: Linting - First line of defense (Fail Fast)
-  linting:
-    name: Code Linting & Style Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Run Checkstyle
-        run: mvn checkstyle:check
-        continue-on-error: true
-
-      - name: Run PMD
-        run: mvn pmd:check
-        continue-on-error: true
-
-      - name: Upload Linting Reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: linting-reports
-          path: |
-            **/target/checkstyle-result.xml
-            **/target/pmd.xml
-
-  # STAGE 2: Build & Test - Only runs if linting passes
+  # STAGE 1: Build - Compile, Test & Package
   build:
     name: Build & Test
     runs-on: ubuntu-latest
-    needs: linting
     steps:
       - uses: actions/checkout@v4
 
@@ -53,10 +21,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build backend and run tests
-        run: mvn clean package
+      - name: Build and test
+        run: mvn clean install
 
-      - name: Upload test reports if tests fail
+      - name: Upload test reports
         if: failure()
         uses: actions/upload-artifact@v4
         with:
@@ -65,16 +33,25 @@ jobs:
             **/target/surefire-reports/
             **/target/allure-results/
 
-      - name: Upload orchestration JAR
-        if: success()
+      - name: Upload backend JAR
         uses: actions/upload-artifact@v4
         with:
           name: backend-jar
           path: orchestration-layer/target/*.jar
 
-  # STAGE 3: SAST - Static Application Security Testing
+      - name: Upload compiled target directories for SAST reuse
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-build-cache
+          path: |
+            **/target/classes/
+            **/target/test-classes/
+            **/target/generated-sources/
+          retention-days: 1
+
+  # STAGE 2: SAST - Static Application Security Testing
   sast:
-    name: SAST - Security Scanning
+    name: SAST - Code Quality & Security
     runs-on: ubuntu-latest
     needs: build
     steps:
@@ -87,80 +64,138 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and run SpotBugs
-        run: mvn clean compile spotbugs:check -DskipTests
+      - name: Download compiled artifacts from build
+        uses: actions/download-artifact@v4
+        with:
+          name: maven-build-cache
+
+      - name: Install internal modules to local Maven repository
+        run: mvn install -DskipTests -Dmaven.main.skip=true -Dmaven.test.skip=true
+
+      - name: Run Checkstyle
+        run: mvn checkstyle:check
         continue-on-error: true
 
-      - name: OWASP Dependency-Check
-        run: mvn dependency-check:check -DskipTests
+      - name: Run PMD
+        run: mvn pmd:check
         continue-on-error: true
 
-      - name: Upload OWASP Report
+      - name: Run SpotBugs
+        run: mvn spotbugs:check
+        continue-on-error: true
+
+      - name: Upload SAST reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: dependency-check-report
-          path: target/dependency-check-report.html
+          name: sast-reports
+          path: |
+            **/target/checkstyle-result.xml
+            **/target/pmd.xml
+            **/target/spotbugsXml.xml
 
-  # STAGE 4: Security Gate - All security checks must pass
-  security-gate:
-    name: Security Gate
+  # STAGE 3: Dockerize - Build Docker Image
+  dockerize:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: [linting, build, sast]
-    if: always()
+    needs: build
     steps:
-      - name: Check security status
-        run: |
-          echo "## 🛡️ Security Pipeline Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Linting | ${{ needs.linting.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build & Test | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| SAST | ${{ needs.sast.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+      - uses: actions/checkout@v4
 
-          # Security gate logic - fail only if critical stages failed
-          if [[ "${{ needs.build.result }}" == "failure" ]]; then
-            echo "❌ **Security Gate FAILED** - Build/Test errors found" >> $GITHUB_STEP_SUMMARY
-            exit 1
-          elif [[ "${{ needs.sast.result }}" == "failure" ]]; then
-            echo "⚠️ **Security Gate WARNING** - SAST found issues (not blocking)" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ needs.linting.result }}" == "failure" ]]; then
-            echo "⚠️ **Linting WARNING** - Code style issues found (not blocking)" >> $GITHUB_STEP_SUMMARY
-          fi
-
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Security Gate PASSED** - Ready for deployment" >> $GITHUB_STEP_SUMMARY
-          exit 0
-
-  # STAGE 5: Deploy - Only runs if security gate passes on main branch
-  deploy:
-    name: Deploy Application
-    runs-on: ubuntu-latest
-    needs: security-gate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
       - name: Download backend JAR
         uses: actions/download-artifact@v4
         with:
           name: backend-jar
-          path: ./deploy
+          path: orchestration-layer/target/
 
-      - name: Display deployment info
+      - name: Display JAR info
         run: |
-          echo "## 🚀 Deployment Ready" >> $GITHUB_STEP_SUMMARY
+          echo "## 🐳 Docker Build Ready" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**JAR files ready for deployment:**" >> $GITHUB_STEP_SUMMARY
-          ls -lh ./deploy/*.jar >> $GITHUB_STEP_SUMMARY
+          echo "**JAR artifact downloaded:**" >> $GITHUB_STEP_SUMMARY
+          ls -lh orchestration-layer/target/*.jar >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "⚙️ Configure your deployment method below" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Docker build is not yet configured. Add Dockerfile and uncomment steps below." >> $GITHUB_STEP_SUMMARY
+
+      # TODO: Uncomment when Dockerfile is ready
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v3
+      #
+      # - name: Login to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+      #
+      # - name: Build and push Docker image
+      #   uses: docker/build-push-action@v5
+      #   with:
+      #     context: .
+      #     push: true
+      #     tags: your-registry/quiz-cms-backend:${{ github.sha }},your-registry/quiz-cms-backend:latest
+
+  # STAGE 4: OWASP Scan - Dependency Vulnerability Check
+  owasp_scan:
+    name: OWASP Dependency Check
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Run OWASP Dependency-Check
+        run: mvn dependency-check:check -DskipTests
+        continue-on-error: true
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: target/dependency-check-report.html
+
+  # STAGE 5: Run/Deploy - Deploy Application
+  run:
+    name: Deploy Application
+    runs-on: ubuntu-latest
+    needs: [build, sast, dockerize, owasp_scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Display deployment status
+        run: |
+          echo "## 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SAST | ${{ needs.sast.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dockerize | ${{ needs.dockerize.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| OWASP Scan | ${{ needs.owasp_scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [[ "${{ needs.build.result }}" == "failure" ]]; then
+            echo "❌ **Deployment BLOCKED** - Build failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          echo "✅ **All stages passed** - Ready for deployment" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **Note:** Deployment method not yet configured. Configure deployment below." >> $GITHUB_STEP_SUMMARY
 
       # TODO: Configure your deployment method
+      # - name: Download backend JAR
+      #   uses: actions/download-artifact@v4
+      #   with:
+      #     name: backend-jar
+      #     path: ./deploy
       #
-      # Option 1: Deploy to remote server via SSH
-      # - name: Deploy to server
+      # - name: Deploy to server via SSH
       #   uses: appleboy/scp-action@v0.1.4
       #   with:
       #     host: ${{ secrets.DEPLOY_HOST }}
@@ -169,13 +204,11 @@ jobs:
       #     source: "./deploy/*.jar"
       #     target: "/opt/app/"
       #
-      # Option 2: Deploy to Docker registry
-      # - name: Build and push Docker image
-      #   uses: docker/build-push-action@v5
+      # - name: Restart application
+      #   uses: appleboy/ssh-action@v1.0.0
       #   with:
-      #     context: .
-      #     push: true
-      #     tags: your-registry/quiz-cms-backend:latest
-      #
-      # Option 3: Deploy to AWS/Azure/GCP
-      # Add your cloud deployment steps here
+      #     host: ${{ secrets.DEPLOY_HOST }}
+      #     username: ${{ secrets.DEPLOY_USER }}
+      #     key: ${{ secrets.DEPLOY_KEY }}
+      #     script: |
+      #       sudo systemctl restart quiz-cms-backend
