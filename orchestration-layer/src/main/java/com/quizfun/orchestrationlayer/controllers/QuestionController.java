@@ -209,9 +209,9 @@ public class QuestionController {
             logger.info("Health check passed - controller and dependencies properly configured");
             return ResponseEntity.ok("OK - QuestionController ready");
         } catch (Exception ex) {
-            logger.error("Health check failed", ex);
+            logger.error("Health check failed - Controller configuration issue", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("ERROR - Controller configuration issue: " + ex.getMessage());
+                .body("ERROR - Service temporarily unavailable");
         }
     }
 
