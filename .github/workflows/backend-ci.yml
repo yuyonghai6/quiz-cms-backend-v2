@@ -89,15 +89,12 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Build and install artifacts for SAST
-        run: mvn clean install -DskipTests
-
-      - name: Run SpotBugs (requires compiled code)
-        run: mvn spotbugs:check
+      - name: Build and run SpotBugs
+        run: mvn clean compile spotbugs:check -DskipTests
         continue-on-error: true
 
       - name: OWASP Dependency-Check
-        run: mvn verify dependency-check:check -DskipTests
+        run: mvn dependency-check:check -DskipTests
         continue-on-error: true
 
       - name: Upload OWASP Report
@@ -151,7 +148,7 @@ jobs:
           queries: security-extended,security-and-quality
 
       - name: Build for CodeQL
-        run: mvn clean install -DskipTests
+        run: mvn clean compile -DskipTests
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
